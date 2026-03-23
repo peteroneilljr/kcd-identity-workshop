@@ -6,6 +6,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Function to print section headers
@@ -32,9 +33,20 @@ print_info() {
     echo -e "${YELLOW}→ $1${NC}"
 }
 
-# Function to pause for effect
+# Function to print commands being executed (pauses before running)
+print_command() {
+    echo ""
+    echo -e "${BOLD}${MAGENTA}  \$ $1${NC}"
+    echo ""
+    echo -e "${MAGENTA}[Press Enter to run]${NC}"
+    read -r
+}
+
+# Function to pause until user presses Enter
 pause() {
-    sleep 2
+    echo ""
+    echo -e "${MAGENTA}[Press Enter to continue]${NC}"
+    read -r
 }
 
 # Check if jq is installed
@@ -56,21 +68,21 @@ pause
 # Step 1: Unauthenticated Access
 print_header "Step 1: Unauthenticated Access (Should Fail)"
 print_info "Without a valid JWT token, all requests are blocked..."
-echo "$ curl -i http://localhost:8080/public"
-HTTP_CODE=$(curl -s -o /tmp/response.txt -w "%{http_code}" http://localhost:8080/public)
-echo "HTTP Status: $HTTP_CODE"
+print_command "curl -si http://localhost:8080/public"
+HTTP_CODE=$(curl -si -o /tmp/response.txt -w "%{http_code}" http://localhost:8080/public)
+cat /tmp/response.txt
+echo ""
 if [ "$HTTP_CODE" == "401" ]; then
     print_success "Request blocked as expected (401 Unauthorized)"
 else
     print_error "Expected 401, got $HTTP_CODE"
 fi
-cat /tmp/response.txt
 pause
 
 # Step 2: Authenticate as Alice
 print_header "Step 2: Authenticate as Alice"
 print_info "Getting JWT token for alice..."
-echo "$ curl -X POST http://localhost:8180/realms/demo/protocol/openid-connect/token ..."
+print_command "curl -s -X POST http://localhost:8180/realms/demo/protocol/openid-connect/token -H 'Content-Type: application/x-www-form-urlencoded' -d 'username=alice' -d 'password=password' -d 'grant_type=password' -d 'client_id=demo-client'"
 
 TOKEN_ALICE=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -86,7 +98,7 @@ if [ -z "$TOKEN_ALICE" ] || [ "$TOKEN_ALICE" == "null" ]; then
 fi
 
 print_success "Token obtained for Alice"
-echo "Token (truncated): ${TOKEN_ALICE:0:50}..."
+echo "Token: $TOKEN_ALICE"
 pause
 
 print_info "Decoding Alice's JWT token to see claims..."
@@ -96,13 +108,13 @@ case $((${#PAYLOAD} % 4)) in
   2) PAYLOAD="${PAYLOAD}==" ;;
   3) PAYLOAD="${PAYLOAD}=" ;;
 esac
-echo "$PAYLOAD" | base64 -d 2>/dev/null | jq '{username: .preferred_username, email: .email}' || echo "(Token claims visible in responses below)"
+echo "$PAYLOAD" | base64 -d 2>/dev/null | jq '.' || echo "(Token claims visible in responses below)"
 pause
 
 # Step 3: Alice Accesses Public App
 print_header "Step 3: Alice → Public App (Should Succeed)"
 print_info "Alice attempts to access the public app..."
-echo "$ curl -H 'Authorization: Bearer \$TOKEN_ALICE' http://localhost:8080/public"
+print_command "curl -H 'Authorization: Bearer \$TOKEN_ALICE' http://localhost:8080/public"
 
 HTTP_CODE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_ALICE" \
@@ -120,7 +132,7 @@ pause
 # Step 4: Alice Accesses Her Own App
 print_header "Step 4: Alice → Alice's App (Should Succeed)"
 print_info "Alice attempts to access HER OWN private app..."
-echo -e "${MAGENTA}$ curl -H 'Authorization: Bearer \$TOKEN_ALICE' http://localhost:8080/alice${NC}"
+print_command "curl -H 'Authorization: Bearer \$TOKEN_ALICE' http://localhost:8080/alice"
 
 HTTP_CODE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_ALICE" \
@@ -138,26 +150,26 @@ pause
 # Step 5: Alice Tries to Access Bob's App
 print_header "Step 5: Alice → Bob's App (Should FAIL)"
 print_info "Alice attempts to access BOB'S private app..."
-echo -e "${MAGENTA}$ curl -H 'Authorization: Bearer \$TOKEN_ALICE' http://localhost:8080/bob${NC}"
+print_command "curl -si -H 'Authorization: Bearer \$TOKEN_ALICE' http://localhost:8080/bob"
 
-HTTP_CODE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
+HTTP_CODE=$(curl -si -o /tmp/response.txt -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_ALICE" \
   http://localhost:8080/bob)
 
-echo "HTTP Status: $HTTP_CODE"
+cat /tmp/response.txt
+echo ""
 if [ "$HTTP_CODE" == "403" ]; then
     print_success "Alice blocked from Bob's app (403 Forbidden) ✓"
     print_info "She's authenticated, but not authorized (not Bob!)"
 else
     print_error "Expected 403, got $HTTP_CODE"
 fi
-cat /tmp/response.txt
 pause
 
 # Step 6: Authenticate as Bob
 print_header "Step 6: Authenticate as Bob"
 print_info "Getting JWT token for bob..."
-echo "$ curl -X POST http://localhost:8180/realms/demo/protocol/openid-connect/token ..."
+print_command "curl -s -X POST http://localhost:8180/realms/demo/protocol/openid-connect/token -H 'Content-Type: application/x-www-form-urlencoded' -d 'username=bob' -d 'password=password' -d 'grant_type=password' -d 'client_id=demo-client'"
 
 TOKEN_BOB=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -173,13 +185,13 @@ if [ -z "$TOKEN_BOB" ] || [ "$TOKEN_BOB" == "null" ]; then
 fi
 
 print_success "Token obtained for Bob"
-echo "Token (truncated): ${TOKEN_BOB:0:50}..."
+echo "Token: $TOKEN_BOB"
 pause
 
 # Step 7: Bob Accesses Public App
 print_header "Step 7: Bob → Public App (Should Succeed)"
 print_info "Bob attempts to access the public app..."
-echo "$ curl -H 'Authorization: Bearer \$TOKEN_BOB' http://localhost:8080/public"
+print_command "curl -H 'Authorization: Bearer \$TOKEN_BOB' http://localhost:8080/public"
 
 HTTP_CODE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_BOB" \
@@ -197,26 +209,26 @@ pause
 # Step 8: Bob Tries to Access Alice's App
 print_header "Step 8: Bob → Alice's App (Should FAIL)"
 print_info "Bob attempts to access ALICE'S private app..."
-echo -e "${MAGENTA}$ curl -H 'Authorization: Bearer \$TOKEN_BOB' http://localhost:8080/alice${NC}"
+print_command "curl -si -H 'Authorization: Bearer \$TOKEN_BOB' http://localhost:8080/alice"
 
-HTTP_CODE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
+HTTP_CODE=$(curl -si -o /tmp/response.txt -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_BOB" \
   http://localhost:8080/alice)
 
-echo "HTTP Status: $HTTP_CODE"
+cat /tmp/response.txt
+echo ""
 if [ "$HTTP_CODE" == "403" ]; then
     print_success "Bob blocked from Alice's app (403 Forbidden) ✓"
     print_info "He's authenticated, but not authorized (not Alice!)"
 else
     print_error "Expected 403, got $HTTP_CODE"
 fi
-cat /tmp/response.txt
 pause
 
 # Step 9: Bob Accesses His Own App
 print_header "Step 9: Bob → Bob's App (Should Succeed)"
 print_info "Bob attempts to access HIS OWN private app..."
-echo -e "${MAGENTA}$ curl -H 'Authorization: Bearer \$TOKEN_BOB' http://localhost:8080/bob${NC}"
+print_command "curl -H 'Authorization: Bearer \$TOKEN_BOB' http://localhost:8080/bob"
 
 HTTP_CODE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_BOB" \
@@ -234,9 +246,9 @@ pause
 # Step 10: View Access Logs
 print_header "Step 10: Access Logs (Complete Audit Trail)"
 print_info "Checking Envoy access logs for identity information..."
-echo "$ docker-compose logs envoy --tail=15"
+print_command "docker-compose logs envoy --tail=15"
 echo ""
-docker-compose logs envoy --tail=15 | grep -E '"user"|"path"' | tail -10
+docker-compose logs envoy --tail=20
 echo ""
 print_success "Every request is logged with user identity and authorization decision"
 pause

@@ -52,14 +52,16 @@ fi
 
 # Test 1: Check all services are running
 echo -e "${YELLOW}[Test Suite 1: Service Health]${NC}"
-if docker-compose ps | grep -q "demo-keycloak.*Up" && \
-   docker-compose ps | grep -q "demo-envoy.*Up" && \
-   docker-compose ps | grep -q "demo-public-app.*Up" && \
-   docker-compose ps | grep -q "demo-internal-app.*Up"; then
+RUNNING_SERVICES=$(docker compose ps --status running 2>/dev/null)
+if echo "$RUNNING_SERVICES" | grep -q "demo-keycloak" && \
+   echo "$RUNNING_SERVICES" | grep -q "demo-envoy" && \
+   echo "$RUNNING_SERVICES" | grep -q "demo-public-app" && \
+   echo "$RUNNING_SERVICES" | grep -q "demo-alice-app" && \
+   echo "$RUNNING_SERVICES" | grep -q "demo-bob-app"; then
     print_test 0 "All services are running"
 else
     print_test 1 "All services are running"
-    echo "Please run: docker-compose up -d"
+    echo "Please run: docker compose up -d"
     exit 1
 fi
 
@@ -82,7 +84,7 @@ fi
 echo ""
 echo -e "${YELLOW}[Test Suite 2: Unauthenticated Access]${NC}"
 
-# Test 4: Unauthenticated request to public app should fail with 401
+# Test 4: Unauthenticated request to /public should fail with 401
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/public)
 if [ "$HTTP_CODE" == "401" ]; then
     print_test 0 "Unauthenticated access to /public returns 401"
@@ -90,18 +92,26 @@ else
     print_test 1 "Unauthenticated access to /public returns 401 (got $HTTP_CODE)"
 fi
 
-# Test 5: Unauthenticated request to internal app should fail with 401
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/internal)
+# Test 5: Unauthenticated request to /alice should fail with 401
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/alice)
 if [ "$HTTP_CODE" == "401" ]; then
-    print_test 0 "Unauthenticated access to /internal returns 401"
+    print_test 0 "Unauthenticated access to /alice returns 401"
 else
-    print_test 1 "Unauthenticated access to /internal returns 401 (got $HTTP_CODE)"
+    print_test 1 "Unauthenticated access to /alice returns 401 (got $HTTP_CODE)"
+fi
+
+# Test 6: Unauthenticated request to /bob should fail with 401
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/bob)
+if [ "$HTTP_CODE" == "401" ]; then
+    print_test 0 "Unauthenticated access to /bob returns 401"
+else
+    print_test 1 "Unauthenticated access to /bob returns 401 (got $HTTP_CODE)"
 fi
 
 echo ""
-echo -e "${YELLOW}[Test Suite 3: Alice (Regular User) Authentication]${NC}"
+echo -e "${YELLOW}[Test Suite 3: Alice Authentication]${NC}"
 
-# Test 6: Can get token for Alice
+# Test 7: Can get token for Alice
 TOKEN_ALICE=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=alice" \
@@ -117,7 +127,7 @@ else
     exit 1
 fi
 
-# Test 7: Alice's token contains expected claims
+# Test 8: Alice's token contains expected claims
 USERNAME=$(decode_jwt_payload "$TOKEN_ALICE" | jq -r '.preferred_username')
 ROLES=$(decode_jwt_payload "$TOKEN_ALICE" | jq -r '.realm_access.roles[]')
 
@@ -134,9 +144,9 @@ else
 fi
 
 echo ""
-echo -e "${YELLOW}[Test Suite 4: Alice (Regular User) Authorization]${NC}"
+echo -e "${YELLOW}[Test Suite 4: Alice Authorization]${NC}"
 
-# Test 8: Alice can access public app
+# Test 9: Alice can access /public
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_ALICE" \
   http://localhost:8080/public)
@@ -147,7 +157,7 @@ else
     print_test 1 "Alice can access /public (got $HTTP_CODE)"
 fi
 
-# Test 9: Alice's request to public app returns correct user info
+# Test 10: Alice's request to /public returns correct user info
 RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/public)
 RESPONSE_USER=$(echo "$RESPONSE" | jq -r '.jwt_claims.username // .authenticated_user')
 
@@ -157,21 +167,42 @@ else
     print_test 1 "Public app correctly identifies Alice (got $RESPONSE_USER)"
 fi
 
-# Test 10: Alice cannot access internal app
+# Test 11: Alice can access /alice
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_ALICE" \
-  http://localhost:8080/internal)
+  http://localhost:8080/alice)
+
+if [ "$HTTP_CODE" == "200" ]; then
+    print_test 0 "Alice can access /alice (200 OK)"
+else
+    print_test 1 "Alice can access /alice (got $HTTP_CODE)"
+fi
+
+# Test 12: Alice's request to /alice returns correct user info
+RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/alice)
+RESPONSE_USER=$(echo "$RESPONSE" | jq -r '.jwt_claims.username // .authenticated_user')
+
+if [ "$RESPONSE_USER" == "alice" ]; then
+    print_test 0 "Alice app correctly identifies Alice"
+else
+    print_test 1 "Alice app correctly identifies Alice (got $RESPONSE_USER)"
+fi
+
+# Test 13: Alice cannot access /bob
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $TOKEN_ALICE" \
+  http://localhost:8080/bob)
 
 if [ "$HTTP_CODE" == "403" ]; then
-    print_test 0 "Alice blocked from /internal (403 Forbidden)"
+    print_test 0 "Alice blocked from /bob (403 Forbidden)"
 else
-    print_test 1 "Alice blocked from /internal (got $HTTP_CODE, expected 403)"
+    print_test 1 "Alice blocked from /bob (got $HTTP_CODE, expected 403)"
 fi
 
 echo ""
-echo -e "${YELLOW}[Test Suite 5: Bob (Admin User) Authentication]${NC}"
+echo -e "${YELLOW}[Test Suite 5: Bob Authentication]${NC}"
 
-# Test 11: Can get token for Bob
+# Test 14: Can get token for Bob
 TOKEN_BOB=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=bob" \
@@ -187,8 +218,14 @@ else
     exit 1
 fi
 
-# Test 12: Bob's token contains admin role
+# Test 15: Bob's token contains expected roles
 ROLES=$(decode_jwt_payload "$TOKEN_BOB" | jq -r '.realm_access.roles[]')
+
+if echo "$ROLES" | grep -q "user"; then
+    print_test 0 "Bob's token contains 'user' role"
+else
+    print_test 1 "Bob's token contains 'user' role"
+fi
 
 if echo "$ROLES" | grep -q "admin"; then
     print_test 0 "Bob's token contains 'admin' role"
@@ -197,9 +234,9 @@ else
 fi
 
 echo ""
-echo -e "${YELLOW}[Test Suite 6: Bob (Admin User) Authorization]${NC}"
+echo -e "${YELLOW}[Test Suite 6: Bob Authorization]${NC}"
 
-# Test 13: Bob can access public app
+# Test 16: Bob can access /public
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_BOB" \
   http://localhost:8080/public)
@@ -210,39 +247,50 @@ else
     print_test 1 "Bob can access /public (got $HTTP_CODE)"
 fi
 
-# Test 14: Bob can access internal app
+# Test 17: Bob can access /bob
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN_BOB" \
-  http://localhost:8080/internal)
+  http://localhost:8080/bob)
 
 if [ "$HTTP_CODE" == "200" ]; then
-    print_test 0 "Bob can access /internal (200 OK)"
+    print_test 0 "Bob can access /bob (200 OK)"
 else
-    print_test 1 "Bob can access /internal (got $HTTP_CODE)"
+    print_test 1 "Bob can access /bob (got $HTTP_CODE)"
 fi
 
-# Test 15: Internal app correctly identifies Bob
-RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/internal)
+# Test 18: Bob app correctly identifies Bob
+RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/bob)
 RESPONSE_USER=$(echo "$RESPONSE" | jq -r '.jwt_claims.username // .authenticated_user')
 
 if [ "$RESPONSE_USER" == "bob" ]; then
-    print_test 0 "Internal app correctly identifies Bob"
+    print_test 0 "Bob app correctly identifies Bob"
 else
-    print_test 1 "Internal app correctly identifies Bob (got $RESPONSE_USER)"
+    print_test 1 "Bob app correctly identifies Bob (got $RESPONSE_USER)"
+fi
+
+# Test 19: Bob cannot access /alice
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $TOKEN_BOB" \
+  http://localhost:8080/alice)
+
+if [ "$HTTP_CODE" == "403" ]; then
+    print_test 0 "Bob blocked from /alice (403 Forbidden)"
+else
+    print_test 1 "Bob blocked from /alice (got $HTTP_CODE, expected 403)"
 fi
 
 echo ""
 echo -e "${YELLOW}[Test Suite 7: Access Logging]${NC}"
 
-# Test 16: Access logs contain user identity
-if docker-compose logs envoy 2>/dev/null | grep -q "alice"; then
+# Test 20: Access logs contain user identity
+if docker compose logs envoy 2>/dev/null | grep -q "alice"; then
     print_test 0 "Access logs contain user identity (alice)"
 else
     print_test 1 "Access logs contain user identity (alice)"
 fi
 
-# Test 17: Access logs contain role information
-if docker-compose logs envoy 2>/dev/null | grep -q "roles"; then
+# Test 21: Access logs contain role information
+if docker compose logs envoy 2>/dev/null | grep -q "roles"; then
     print_test 0 "Access logs contain role information"
 else
     print_test 1 "Access logs contain role information"
