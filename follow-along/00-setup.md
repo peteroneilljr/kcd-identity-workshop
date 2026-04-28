@@ -2,7 +2,7 @@
 
 Get the cluster running so the rest of the workshop has something to talk to.
 
-[← back to index](README.md) · next: [01-http-authz.md](01-http-authz.md)
+[← back to index](README.md) · next: [01-grafana-oidc.md](01-grafana-oidc.md)
 
 ## What you'll end up with
 
@@ -102,4 +102,4 @@ If any of those fail, jump to [99-cleanup.md → Troubleshooting](99-cleanup.md#
 
 ---
 
-→ Cluster's up. Next: [**01-http-authz.md**](01-http-authz.md) — see Envoy authorize HTTP requests by JWT identity.
+→ Cluster's up. Next: [**01-grafana-oidc.md**](01-grafana-oidc.md) — log into Grafana with Keycloak via OIDC code flow. This is the foundational identity flow the rest of the workshop builds on.

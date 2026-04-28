@@ -1,8 +1,10 @@
-# 03 — Grafana: OIDC code flow direct to Keycloak
+# 01 — OIDC code flow with Grafana
 
-Grafana speaks OIDC natively, so this part is the **opposite** pattern from the previous two: Envoy is **not** in this path at all. Grafana redirects the user's browser to Keycloak, runs the standard OAuth2 authorization-code flow, and uses Keycloak's `realm_access.roles` claim to decide whether the user is a Grafana Admin or Viewer.
+OIDC (OpenID Connect) is the foundation everything else in this workshop builds on. Before any backend can enforce identity, the user has to *prove* who they are to Keycloak — and the standard browser-driven way to do that is the OIDC authorization code flow.
 
-[← back to index](README.md) · prev: [02-postgres-rls.md](02-postgres-rls.md) · next: [04-ssh-certs.md](04-ssh-certs.md)
+Grafana is the simplest place to see this in action: click a button, log in, and your Keycloak identity *becomes* Grafana's identity. The rest of the workshop's backends use this same Keycloak identity in different ways — the HTTP gateway will validate JWTs Keycloak issues, db-app will translate them into Postgres roles, ssh-ca will sign them into SSH certs — but the human-facing flow always starts here.
+
+[← back to index](README.md) · prev: [00-setup.md](00-setup.md) · next: [02-http-authz.md](02-http-authz.md)
 
 ## Prerequisite
 
@@ -91,12 +93,12 @@ The browser only ever sees `localhost:8180` because that's where the port-forwar
 
 ## Why this matters
 
-Three observations:
+Three observations to carry into the rest of the workshop:
 
-1. **Grafana doesn't need a custom integration.** It speaks OIDC; we just configured one provider. Same pattern works for any OIDC-aware app — Argo CD, ArgoCD, GitLab, Vault UI, Kubernetes Dashboard, etc.
-2. **No shared secrets between Grafana and the apps.** Grafana has its own client_id + secret with Keycloak. The HTTP apps in the previous parts have nothing to do with Grafana's auth.
-3. **Same identity, different role mappings per system.** alice is `Viewer` in Grafana but a fully empowered owner of `/alice` and her own DB rows. Each system decides what the JWT identity *means* in its own terms.
+1. **Grafana doesn't need a custom integration.** It speaks OIDC; we just configured one provider. Same pattern works for any OIDC-aware app — Argo CD, GitLab, Vault UI, Kubernetes Dashboard, Sonatype Nexus, etc. When you can plug straight into Keycloak with a few config lines, you do — that's the easiest case.
+2. **The JWT you've now obtained is the universal currency for the rest of the workshop.** The next module shows how to fetch the same token directly via curl (without a browser) and present it as a bearer token to an API gateway. After that, you'll see two examples of *bridging* that JWT into systems that don't speak OIDC natively (Postgres and SSH).
+3. **Same identity, different role mappings per system.** alice will be `Viewer` here in Grafana but a fully empowered owner of `/alice` and her own DB rows in the next parts. Each system decides what the JWT identity *means* in its own terms — the IdP only attests *who* you are.
 
 ---
 
-→ Next: [**04-ssh-certs.md**](04-ssh-certs.md) — same identity, into the most non-HTTP backend possible: a shell session.
+→ Next: [**02-http-authz.md**](02-http-authz.md) — same identity, this time as a bearer JWT validated by an API gateway on every request.

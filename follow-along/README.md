@@ -6,22 +6,22 @@ The four enforcement points exercised here:
 
 | #  | Backend       | What enforces identity                                                |
 | -- | ------------- | --------------------------------------------------------------------- |
-| 1  | HTTP apps     | Envoy `jwt_authn` + `rbac` filter on `preferred_username`             |
-| 2  | Postgres      | `SET ROLE <jwt-username>` inside a tx + RLS on `current_user`         |
-| 3  | Grafana       | Native OIDC code flow against Keycloak; JMESPath role mapping         |
+| 1  | Grafana       | Native OIDC code flow against Keycloak; JMESPath role mapping         |
+| 2  | HTTP apps     | Envoy `jwt_authn` + `rbac` filter on `preferred_username`             |
+| 3  | Postgres      | `SET ROLE <jwt-username>` inside a tx + RLS on `current_user`         |
 | 4  | SSH           | 15-min cert signed with `principal = JWT username`                    |
 
 ## Order
 
-Do these in order on first pass — each builds on the cluster spun up by **00**. After Setup, the four backends are independent: skip ahead to whichever interests you.
+The first pass is sequenced deliberately — OIDC first, because it's the foundational identity flow every other backend reuses; then bearer-JWT validation at a gateway; then two non-JWT-native backends bridged in. After Setup, modules can be done independently if you want to skip ahead.
 
 | File | Topic | Time |
 |---|---|---|
 | [00-setup.md](00-setup.md) | Build images, apply manifests, port-forward | ~5 min |
-| [01-http-authz.md](01-http-authz.md) | HTTP gated by JWT + per-user RBAC | ~5 min |
-| [02-postgres-rls.md](02-postgres-rls.md) | DB rows scoped per identity via RLS | ~5 min |
-| [03-grafana-oidc.md](03-grafana-oidc.md) | Browser SSO with realm-role-to-Grafana-role mapping | ~5 min |
-| [04-ssh-certs.md](04-ssh-certs.md) | SSH access via short-lived CA-signed certs | ~5 min |
+| [01-grafana-oidc.md](01-grafana-oidc.md) | OIDC code flow with Grafana — the foundation everything else uses | ~5 min |
+| [02-http-authz.md](02-http-authz.md) | The same identity as a bearer JWT, validated at an API gateway | ~5 min |
+| [03-postgres-rls.md](03-postgres-rls.md) | Bridging that JWT into Postgres via SET ROLE + row-level security | ~5 min |
+| [04-ssh-certs.md](04-ssh-certs.md) | Bridging the JWT into SSH via short-lived CA-signed certs | ~5 min |
 | [99-cleanup.md](99-cleanup.md) | Cleanup, troubleshooting, extra experiments | — |
 
 ## Prerequisites

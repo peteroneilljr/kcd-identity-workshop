@@ -6,9 +6,9 @@ The user authenticates to Keycloak once. From there, the same identity controls:
 
 | Backend | Mechanism | What's enforced |
 |---|---|---|
+| Grafana dashboard | OIDC code flow direct to Keycloak | Identity + role mapping (Admin/Viewer) |
 | HTTP services (`public`, `alice`, `bob`) | Envoy JWT validation + RBAC by `preferred_username` | Per-user, per-route HTTP authz |
 | Postgres database | JWT identity forwarded → app does `SET ROLE` → row-level security | Per-user row visibility (RLS) |
-| Grafana dashboard | OIDC code flow direct to Keycloak | Identity + role mapping (Admin/Viewer) |
 | Ubuntu SSH | Short-lived SSH cert signed from JWT, principals = JWT username | Per-user shell access |
 
 > **Hands-on workshop modules** live in [`follow-along/`](follow-along/) — one self-contained file per backend, each runnable in ~5 minutes. This README is a tour of *what* and *why*; that directory is the *how*.
@@ -96,7 +96,31 @@ This is the same architectural pattern as Teleport, Vault SSH secrets engine, or
 
 ## How identity flows through each backend
 
-### 1. HTTP via Envoy JWT + RBAC
+The four subsections below match the order of the `follow-along/` workshop modules. OIDC comes first because it's the foundational identity flow every other backend reuses; bearer-JWT validation at a gateway comes next; then the two non-JWT-native backends bridged in.
+
+### 1. Grafana via OIDC code flow
+
+Standard OAuth2 authorization code grant — the user-visible "log in with Keycloak" flow. The interesting wrinkle is the URL split — *whose* network namespace makes each call:
+
+| setting | URL | who hits it |
+|---|---|---|
+| `auth_url` | `http://localhost:8180/...` | the user's **browser** (port-forwarded) |
+| `token_url` | `http://keycloak:8180/...` | the **Grafana pod** (in-cluster DNS) |
+| `api_url` | `http://keycloak:8180/...` | the **Grafana pod** (in-cluster DNS) |
+
+`KC_HOSTNAME_URL=http://localhost:8180` on the Keycloak deployment pins the JWT `iss` claim deterministically regardless of network path; `KC_HOSTNAME_STRICT_BACKCHANNEL=false` permits the in-cluster URLs on the back channel.
+
+Role mapping is a JMESPath:
+
+```ini
+role_attribute_path = contains(realm_access.roles[*], 'admin') && 'Admin' || 'Viewer'
+```
+
+So `alice` (realm roles `[user]`) → Grafana **Viewer**; `bob` (realm roles `[user, admin]`) → Grafana **Admin**.
+
+→ Hands-on: [`follow-along/01-grafana-oidc.md`](follow-along/01-grafana-oidc.md)
+
+### 2. HTTP via Envoy JWT + RBAC
 
 The conceptual flow:
 
@@ -117,11 +141,11 @@ The RBAC policies key on **identity**, not roles:
 
 Bob has the `admin` realm role, but it doesn't unlock alice's app — RBAC checks the username, not the role. *Authentication ≠ authorization*.
 
-→ Hands-on: [`follow-along/01-http-authz.md`](follow-along/01-http-authz.md)
+→ Hands-on: [`follow-along/02-http-authz.md`](follow-along/02-http-authz.md)
 
-### 2. Database via SET ROLE + RLS
+### 3. Database via SET ROLE + RLS
 
-Same JWT, different enforcement layer:
+Same JWT, different enforcement layer — and the first **bridge** in the workshop (a system that can't speak JWT at all):
 
 ```
 client ──Bearer JWT──► Envoy ──verify──► forward x-jwt-payload ──► db-app
@@ -137,33 +161,11 @@ client ──Bearer JWT──► Envoy ──verify──► forward x-jwt-paylo
 
 The DB itself is the authority on who-sees-what. Even if `db-app` had a bug or got compromised, the worst case is running as `dbproxy`, which has no privileges of its own — only what it inherits via `SET ROLE`. RLS is enforced regardless of application correctness.
 
-→ Hands-on: [`follow-along/02-postgres-rls.md`](follow-along/02-postgres-rls.md)
-
-### 3. Grafana via OIDC code flow
-
-Standard OAuth2 authorization code grant. The interesting wrinkle is the URL split — *whose* network namespace makes each call:
-
-| setting | URL | who hits it |
-|---|---|---|
-| `auth_url` | `http://localhost:8180/...` | the user's **browser** (port-forwarded) |
-| `token_url` | `http://keycloak:8180/...` | the **Grafana pod** (in-cluster DNS) |
-| `api_url` | `http://keycloak:8180/...` | the **Grafana pod** (in-cluster DNS) |
-
-`KC_HOSTNAME_URL=http://localhost:8180` on the Keycloak deployment pins the JWT `iss` claim deterministically regardless of network path; `KC_HOSTNAME_STRICT_BACKCHANNEL=false` permits the in-cluster URLs on the back channel.
-
-Role mapping is a JMESPath:
-
-```ini
-role_attribute_path = contains(realm_access.roles[*], 'admin') && 'Admin' || 'Viewer'
-```
-
-So `alice` (realm roles `[user]`) → Grafana **Viewer**; `bob` (realm roles `[user, admin]`) → Grafana **Admin**.
-
-→ Hands-on: [`follow-along/03-grafana-oidc.md`](follow-along/03-grafana-oidc.md)
+→ Hands-on: [`follow-along/03-postgres-rls.md`](follow-along/03-postgres-rls.md)
 
 ### 4. SSH via short-lived CA-signed certs
 
-Layered enforcement — failures at any one of these stops the chain:
+The second bridge — same JWT, this time turned into a credential a non-HTTP protocol understands. Layered enforcement, failures at any one of these stops the chain:
 
 1. **Envoy** rejects `/ssh-ca/sign` without a valid Keycloak JWT (401).
 2. **`ssh-ca`** ignores any user-supplied identity. The cert's `Principals=` field is set strictly from the JWT's `preferred_username`. The CA private key is mounted read-only via Secret with `defaultMode: 0440` + `fsGroup: 1001`.

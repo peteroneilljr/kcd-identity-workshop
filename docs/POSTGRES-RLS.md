@@ -344,4 +344,4 @@ A few ways to legitimately bypass RLS for admin tasks:
 - [Postgres docs: Role Membership](https://www.postgresql.org/docs/16/role-membership.html)
 - [Postgres docs: GRANT](https://www.postgresql.org/docs/16/sql-grant.html)
 - [The 'current_user' system function](https://www.postgresql.org/docs/16/functions-info.html)
-- Workshop module: [`follow-along/02-postgres-rls.md`](../follow-along/02-postgres-rls.md) — hands-on commands
+- Workshop module: [`follow-along/03-postgres-rls.md`](../follow-along/03-postgres-rls.md) — hands-on commands

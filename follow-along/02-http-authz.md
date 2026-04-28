@@ -1,8 +1,10 @@
-# 01 — HTTP authz: Envoy + JWT + RBAC
+# 02 — HTTP authz: Envoy + JWT + RBAC
 
-Three HTTP services (`/public`, `/alice`, `/bob`) sit behind Envoy. Envoy validates the Keycloak JWT on every request and applies an RBAC policy that keys on `preferred_username` from the token's claims. Backends never see anonymous traffic.
+In [01](01-grafana-oidc.md) you logged into Grafana via the browser and watched Keycloak hand you back into a session. The token Keycloak issued got consumed by Grafana automatically — you never saw it.
 
-[← back to index](README.md) · prev: [00-setup.md](00-setup.md) · next: [02-postgres-rls.md](02-postgres-rls.md)
+This module pulls the curtain back. We'll fetch a Keycloak access token directly with curl, decode it to see what's inside, and present it as a bearer credential to a different system: an API gateway (Envoy) sitting in front of three HTTP services (`/public`, `/alice`, `/bob`). Envoy validates the JWT on every request and applies an RBAC policy that keys on `preferred_username`. Backends never see anonymous traffic.
+
+[← back to index](README.md) · prev: [01-grafana-oidc.md](01-grafana-oidc.md) · next: [03-postgres-rls.md](03-postgres-rls.md)
 
 ## Prerequisite
 
@@ -107,4 +109,4 @@ Envoy is the choke point for a fleet of backend services that don't have to know
 
 ---
 
-→ Next: [**02-postgres-rls.md**](02-postgres-rls.md) — same JWT identity, different enforcement layer (Postgres RLS).
+→ Next: [**03-postgres-rls.md**](03-postgres-rls.md) — same JWT identity, different enforcement layer (Postgres RLS).

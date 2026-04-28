@@ -33,7 +33,7 @@ How Envoy's dynamic metadata system enables identity-aware logs, and what a comp
 These cover the per-backend integration patterns the workshop's four parts demonstrate.
 
 ### [Postgres Row-Level Security](POSTGRES-RLS.md)
-How the demo bridges a Keycloak JWT into Postgres without Postgres ever needing to understand JWTs. Pairs with `follow-along/02-postgres-rls.md`.
+How the demo bridges a Keycloak JWT into Postgres without Postgres ever needing to understand JWTs. Pairs with `follow-along/03-postgres-rls.md`.
 
 **Topics:** roles and role membership · `NOINHERIT` and least-privilege login users · `SET ROLE` vs `SET LOCAL ROLE` · RLS policies and `current_user` · `FORCE ROW LEVEL SECURITY` · cross-tenant scaling strategies.
 

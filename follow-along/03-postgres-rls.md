@@ -1,12 +1,14 @@
-# 02 — Postgres: SET ROLE + RLS keyed on Keycloak identity
+# 03 — Postgres: SET ROLE + RLS keyed on Keycloak identity
 
-Postgres can't validate JWTs natively. So `db-app` does the bridge: it reads the JWT identity Envoy forwards, runs `SET LOCAL ROLE "<username>"` inside a transaction, and queries. Postgres' row-level security filters per `current_user`. The DB itself enforces who-sees-what — even a buggy `db-app` couldn't leak rows.
+So far you've used a Keycloak identity in two systems that *understood* it natively — Grafana via OIDC, Envoy via JWT bearer auth. This module is the first **bridge**: a system that can't speak JWT at all.
 
-[← back to index](README.md) · prev: [01-http-authz.md](01-http-authz.md) · next: [03-grafana-oidc.md](03-grafana-oidc.md)
+Postgres can't validate JWTs. So `db-app` does the bridge: it reads the JWT identity Envoy forwards (as `x-jwt-payload`), runs `SET LOCAL ROLE "<username>"` inside a transaction, and queries. Postgres' row-level security filters per `current_user`. The DB itself enforces who-sees-what — even a buggy `db-app` couldn't leak rows. This pattern (HTTP gateway validates JWT → small bridge service translates to a protocol-native credential → resource enforces with its own auth model) generalizes to a lot of non-JWT systems.
+
+[← back to index](README.md) · prev: [02-http-authz.md](02-http-authz.md) · next: [04-ssh-certs.md](04-ssh-certs.md)
 
 ## Prerequisite
 
-[`00-setup.md`](00-setup.md) finished. Tokens may have expired since 01 — re-fetch:
+[`00-setup.md`](00-setup.md) finished. Tokens may have expired since the previous module — re-fetch:
 
 ```bash
 TOKEN_ALICE=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
@@ -90,4 +92,4 @@ This is the same architectural pattern as Envoy's RBAC, just at a different laye
 
 ---
 
-→ Next: [**03-grafana-oidc.md**](03-grafana-oidc.md) — Grafana speaks OIDC natively. Different enforcement, same Keycloak identity.
+→ Next: [**04-ssh-certs.md**](04-ssh-certs.md) — same JWT, this time bridged into SSH cert auth (a non-HTTP protocol).
