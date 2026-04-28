@@ -64,7 +64,7 @@ The fields come from `k8s/config-src/envoy.yaml`'s `access_log` block. Notable:
 - **`user`** — the verified `preferred_username` from the JWT, pulled directly from the `jwt_authn` filter's metadata. Not a header sent by the client; not parseable from elsewhere; the request literally cannot reach this point if Envoy didn't validate the signature.
 - **`roles`** — the verified realm roles array, same provenance.
 - **`status`** — `200` (allowed and served), `401` (no/invalid JWT — Envoy short-circuited before any backend), `403` (JWT valid but RBAC denied — also short-circuited).
-- **`response_flags`** — Envoy's classification. `RBAC_ACCESS_DENIED` flags the 403s specifically; `-` means the request completed normally.
+- **`response_flags`** — Envoy's connection-level event flags (e.g. `UH` upstream unhealthy, `UF` upstream connection failure). `-` means no special event. Authorization decisions don't show up here; the `status` field is what tells you whether the request was allowed (200) or denied at JWT (401) / RBAC (403).
 
 ## Filter by user
 
@@ -82,7 +82,7 @@ kubectl -n ams-demo logs deploy/envoy | grep '^{' | jq 'select(.user == "bob")'
 
 ## Find every denied request
 
-The cross-user attempts (alice trying to reach `/bob`, bob trying to reach `/alice`) show up as 403s with `response_flags: "RBAC_ACCESS_DENIED"`:
+The cross-user attempts (alice trying to reach `/bob`, bob trying to reach `/alice`) show up as 403s — Envoy's RBAC filter denied them after the JWT validated:
 
 ```bash
 kubectl -n ams-demo logs deploy/envoy | grep '^{' | jq 'select(.status == 403)'

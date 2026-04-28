@@ -100,12 +100,7 @@ All envoy log entries, parsed.
 ```logql
 {namespace="ams-demo", app="envoy"} | json | __error__="" | status="403"
 ```
-Only the RBAC denials.
-
-```logql
-{namespace="ams-demo", app="envoy"} | json | __error__="" | response_flags="RBAC_ACCESS_DENIED"
-```
-Same, but using Envoy's classification flag. Same result, more semantic.
+Only the RBAC denials. (`status="401"` for unauthenticated attempts.)
 
 ```logql
 sum by (user) (count_over_time({namespace="ams-demo", app="envoy"} | json | __error__="" [1m]))
