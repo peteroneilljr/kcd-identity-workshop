@@ -1,6 +1,6 @@
-# 99 — Cleanup, Troubleshooting, Extra Experiments
+# 99 — Cleanup & Troubleshooting
 
-[← back to index](README.md) · prev: [04-ssh-certs.md](04-ssh-certs.md)
+[← back to index](README.md) · prev: [98-experiments.md](98-experiments.md)
 
 ## Cleanup
 
@@ -28,71 +28,6 @@ docker rmi demo-public-app:k8s demo-alice-app:k8s demo-bob-app:k8s \
 ```
 
 25 assertions across all four backends — should print `ALL 25 ASSERTIONS PASSED`. This is also what runs on every clean-rebuild verification we did during development.
-
-## Extra experiments
-
-### Token expiration
-
-Keycloak access tokens last 5 minutes by default. Watch what happens when one expires:
-
-```bash
-TOKEN=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
-  -d "client_id=demo-client&grant_type=password&username=alice&password=password" | jq -r .access_token)
-
-# Works:
-curl -i -H "Authorization: Bearer $TOKEN" http://localhost:8080/alice    # 200
-
-# Wait past expiration, then try again:
-sleep 305
-curl -i -H "Authorization: Bearer $TOKEN" http://localhost:8080/alice    # 401, exp passed
-```
-
-### Tampered token
-
-Modify a few characters in the middle of the token — the signature won't verify:
-
-```bash
-FAKE="${TOKEN:0:50}HACKED${TOKEN:56}"
-curl -i -H "Authorization: Bearer $FAKE" http://localhost:8080/alice     # 401, signature invalid
-```
-
-### Cross-cutting access matrix as a one-liner
-
-```bash
-for U in alice bob; do
-  T=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
-       -d "client_id=demo-client&grant_type=password&username=$U&password=password" | jq -r .access_token)
-  for P in /public /alice /bob /db; do
-    printf "%-5s %-8s -> %s\n" "$U" "$P" \
-      "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T" http://localhost:8080$P)"
-  done
-done
-```
-
-Expected:
-
-```
-alice /public   -> 200
-alice /alice    -> 200
-alice /bob      -> 403
-alice /db       -> 200
-bob   /public   -> 200
-bob   /alice    -> 403
-bob   /bob      -> 200
-bob   /db       -> 200
-```
-
-### Rotate the SSH CA without redeploying anything else
-
-```bash
-kubectl -n ams-demo delete secret ssh-ca-key configmap ssh-ca-pub
-kubectl -n ams-demo delete job ssh-ca-bootstrap
-kubectl apply -f k8s/05-ssh-ca-bootstrap.yaml
-kubectl -n ams-demo wait --for=condition=Complete job/ssh-ca-bootstrap --timeout=60s
-kubectl -n ams-demo rollout restart deploy/sshd deploy/ssh-ca
-```
-
-The CA pubkey embedded in `sshd` changed, so previously-issued certs are no longer trusted. Re-sign and re-ssh. This is also exactly what real-world CA key rotation looks like.
 
 ## Troubleshooting
 
