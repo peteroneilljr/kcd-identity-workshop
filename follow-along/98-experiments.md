@@ -4,7 +4,7 @@ Now that the four backends are working and you've seen identity flow through eac
 
 These all run against the same cluster you've been using; nothing extra to set up. After this, head to [99-cleanup.md](99-cleanup.md) to tear down.
 
-[← back to index](README.md) · prev: [04-ssh-certs.md](04-ssh-certs.md) · next: [99-cleanup.md](99-cleanup.md)
+[← back to index](README.md) · prev: [05-audit-trail.md](05-audit-trail.md) · next: [99-cleanup.md](99-cleanup.md)
 
 ## Token expiration
 

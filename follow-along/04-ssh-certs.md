@@ -4,7 +4,7 @@ Shell access is gated by an **SSH user certificate** signed at runtime by an in-
 
 This pattern is what tools like Teleport and HashiCorp Vault's SSH secrets engine do under the hood. Doing it yourself in ~50 lines of node + a few k8s manifests demystifies a lot.
 
-[← back to index](README.md) · prev: [03-postgres-rls.md](03-postgres-rls.md) · next: [98-experiments.md](98-experiments.md)
+[← back to index](README.md) · prev: [03-postgres-rls.md](03-postgres-rls.md) · next: [05-audit-trail.md](05-audit-trail.md)
 
 ## Prerequisite
 
@@ -116,4 +116,4 @@ This is roughly how Teleport's `tsh ssh` works under the hood. The mental model 
 
 ---
 
-→ Next: [**98-experiments.md**](98-experiments.md) — bonus experiments probing the edges of the security model (token expiration, tampered tokens, CA rotation).
+→ Next: [**05-audit-trail.md**](05-audit-trail.md) — see all of the above show up in the per-request audit log, with verified identity and authorization decision attached.
