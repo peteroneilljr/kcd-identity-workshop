@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-oidc
+  namespace: ams-demo
+type: Opaque
+stringData:
+  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: "grafana-secret"
+  GF_SECURITY_ADMIN_PASSWORD: "admin"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: ams-demo
+spec:
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: ams-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.2.0
+          ports:
+            - containerPort: 3000
+          env:
+            # The URL the user's browser reaches Grafana on (via port-forward).
+            - name: GF_SERVER_ROOT_URL
+              value: "http://localhost:3300/"
+            - name: GF_SERVER_DOMAIN
+              value: "localhost"
+
+            - name: GF_SECURITY_ADMIN_USER
+              value: "admin"
+
+            # OIDC against Keycloak. auth_url is the URL the user's BROWSER hits,
+            # so it must be the externally-reachable port-forward URL. token_url
+            # and api_url are hit server-side from the Grafana pod, so they use
+            # the in-cluster Service DNS.
+            - name: GF_AUTH_GENERIC_OAUTH_ENABLED
+              value: "true"
+            - name: GF_AUTH_GENERIC_OAUTH_NAME
+              value: "Keycloak"
+            - name: GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP
+              value: "true"
+            - name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID
+              value: "grafana"
+            - name: GF_AUTH_GENERIC_OAUTH_SCOPES
+              value: "openid profile email"
+            - name: GF_AUTH_GENERIC_OAUTH_AUTH_URL
+              value: "http://localhost:8180/realms/demo/protocol/openid-connect/auth"
+            - name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL
+              value: "http://keycloak:8180/realms/demo/protocol/openid-connect/token"
+            - name: GF_AUTH_GENERIC_OAUTH_API_URL
+              value: "http://keycloak:8180/realms/demo/protocol/openid-connect/userinfo"
+            - name: GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH
+              value: "preferred_username"
+            - name: GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_PATH
+              value: "email"
+            - name: GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH
+              value: "name"
+            # Map realm role 'admin' -> Grafana Admin, otherwise Viewer.
+            - name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH
+              value: "contains(realm_access.roles[*], 'admin') && 'Admin' || 'Viewer'"
+          envFrom:
+            - secretRef:
+                name: grafana-oidc
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/grafana
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+      volumes:
+        - name: data
+          emptyDir: {}

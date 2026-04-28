@@ -1,0 +1,31 @@
+Port 22
+ListenAddress 0.0.0.0
+
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+
+# Cert auth only — no passwords, no random pubkeys.
+AuthenticationMethods publickey
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+
+# Trust certs signed by the demo SSH CA. Mounted from a ConfigMap.
+TrustedUserCAKeys /etc/ssh/ca.pub
+
+# Each unix user has their own principals file: only certs whose principal
+# matches a line here are accepted for that user. So alice's cert can't
+# be used to log in as bob (cross-user impersonation), even though the cert
+# is signed by the trusted CA.
+AuthorizedPrincipalsFile /etc/ssh/auth_principals/%u
+
+# Disable the default user-managed authorized_keys path entirely so the only
+# way in is via a CA-signed cert with the right principal.
+AuthorizedKeysFile none
+
+LogLevel VERBOSE
+UsePAM yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server

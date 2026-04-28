@@ -1,0 +1,283 @@
+apiVersion: v1
+data:
+  envoy.yaml: |
+    static_resources:
+      listeners:
+      - name: main_listener
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 8080
+        filter_chains:
+        - filters:
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: ingress_http
+              codec_type: AUTO
+              route_config:
+                name: local_route
+                virtual_hosts:
+                - name: backend
+                  domains: ["*"]
+                  routes:
+                  # Route for public app (accessible to anyone authenticated)
+                  - match:
+                      prefix: "/public"
+                    route:
+                      cluster: public_app_cluster
+                      prefix_rewrite: "/"
+                  # Route for Alice's app (only alice can access)
+                  - match:
+                      prefix: "/alice"
+                    route:
+                      cluster: alice_app_cluster
+                      prefix_rewrite: "/"
+                  # Route for Bob's app (only bob can access)
+                  - match:
+                      prefix: "/bob"
+                    route:
+                      cluster: bob_app_cluster
+                      prefix_rewrite: "/"
+                  # Route for db-app: any authenticated user. Postgres RLS
+                  # restricts which rows the JWT identity can see.
+                  - match:
+                      prefix: "/db"
+                    route:
+                      cluster: db_app_cluster
+                      prefix_rewrite: "/"
+                  # Route for ssh-ca: any authenticated user. The signed cert's
+                  # principal is taken from the JWT — users can't ask to be signed
+                  # for someone else. Trailing-slash prefix + prefix_rewrite "/" maps
+                  # /ssh-ca/sign -> /sign (without the trailing slash, /ssh-ca + "/"
+                  # would leave a doubled slash in the rewritten path).
+                  - match:
+                      prefix: "/ssh-ca/"
+                    route:
+                      cluster: ssh_ca_cluster
+                      prefix_rewrite: "/"
+                  # Health check endpoint (no auth required)
+                  - match:
+                      prefix: "/health"
+                    route:
+                      cluster: public_app_cluster
+                      prefix_rewrite: "/health"
+              http_filters:
+              # JWT Authentication Filter
+              - name: envoy.filters.http.jwt_authn
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                  providers:
+                    keycloak:
+                      issuer: "http://localhost:8180/realms/demo"
+                      remote_jwks:
+                        http_uri:
+                          uri: "http://keycloak:8180/realms/demo/protocol/openid-connect/certs"
+                          cluster: keycloak_cluster
+                          timeout: 5s
+                        cache_duration:
+                          seconds: 300
+                      forward: true
+                      forward_payload_header: "x-jwt-payload"
+                      payload_in_metadata: "jwt_payload"
+                      from_headers:
+                      - name: "Authorization"
+                        value_prefix: "Bearer "
+                  rules:
+                  # Require JWT for all routes except health
+                  - match:
+                      prefix: "/health"
+                  - match:
+                      prefix: "/"
+                    requires:
+                      provider_name: "keycloak"
+
+              # RBAC Filter for authorization
+              - name: envoy.filters.http.rbac
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+                  rules:
+                    action: ALLOW
+                    policies:
+                      # Allow any authenticated user to access /public, /health, /db
+                      # (db-app + Postgres RLS enforces per-identity row access)
+                      "allow-public":
+                        permissions:
+                        - or_rules:
+                            rules:
+                            - header:
+                                name: ":path"
+                                string_match:
+                                  prefix: "/public"
+                            - header:
+                                name: ":path"
+                                string_match:
+                                  prefix: "/health"
+                            - header:
+                                name: ":path"
+                                string_match:
+                                  prefix: "/db"
+                            - header:
+                                name: ":path"
+                                string_match:
+                                  prefix: "/ssh-ca"
+                        principals:
+                        - any: true
+
+                      # Only allow alice to access /alice
+                      "allow-alice-only":
+                        permissions:
+                        - header:
+                            name: ":path"
+                            string_match:
+                              prefix: "/alice"
+                        principals:
+                        - metadata:
+                            filter: "envoy.filters.http.jwt_authn"
+                            path:
+                            - key: "jwt_payload"
+                            - key: "preferred_username"
+                            value:
+                              string_match:
+                                exact: "alice"
+
+                      # Only allow bob to access /bob
+                      "allow-bob-only":
+                        permissions:
+                        - header:
+                            name: ":path"
+                            string_match:
+                              prefix: "/bob"
+                        principals:
+                        - metadata:
+                            filter: "envoy.filters.http.jwt_authn"
+                            path:
+                            - key: "jwt_payload"
+                            - key: "preferred_username"
+                            value:
+                              string_match:
+                                exact: "bob"
+
+              # Router filter (must be last)
+              - name: envoy.filters.http.router
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+              # Access logging with identity information
+              access_log:
+              - name: envoy.access_loggers.stdout
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                  log_format:
+                    json_format:
+                      timestamp: "%START_TIME%"
+                      method: "%REQ(:METHOD)%"
+                      path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+                      status: "%RESPONSE_CODE%"
+                      duration_ms: "%DURATION%"
+                      user: "%DYNAMIC_METADATA(envoy.filters.http.jwt_authn:jwt_payload:preferred_username)%"
+                      roles: "%DYNAMIC_METADATA(envoy.filters.http.jwt_authn:jwt_payload:realm_access:roles)%"
+                      response_flags: "%RESPONSE_FLAGS%"
+
+      clusters:
+      # Keycloak cluster for JWKS fetching
+      - name: keycloak_cluster
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: keycloak_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: keycloak
+                    port_value: 8180
+
+      # Public app cluster
+      - name: public_app_cluster
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: public_app_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: public-app
+                    port_value: 3000
+
+      # Alice's app cluster
+      - name: alice_app_cluster
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: alice_app_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: alice-app
+                    port_value: 3002
+
+      # Bob's app cluster
+      - name: bob_app_cluster
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: bob_app_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: bob-app
+                    port_value: 3001
+
+      # db-app cluster
+      - name: db_app_cluster
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: db_app_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: db-app
+                    port_value: 3003
+
+      # ssh-ca cluster
+      - name: ssh_ca_cluster
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: ssh_ca_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: ssh-ca
+                    port_value: 3004
+
+    # Admin interface (optional, for debugging)
+    admin:
+      access_log_path: /dev/null
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9901
+kind: ConfigMap
+metadata:
+  name: envoy-config
+  namespace: ams-demo

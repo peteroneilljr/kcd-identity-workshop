@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-ca
+  namespace: ams-demo
+spec:
+  selector:
+    app: ssh-ca
+  ports:
+    - name: http
+      port: 3004
+      targetPort: 3004
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh-ca
+  namespace: ams-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssh-ca
+  template:
+    metadata:
+      labels:
+        app: ssh-ca
+    spec:
+      # Container runs as nodejs (uid/gid 1001). fsGroup makes the mounted
+      # Secret files group-owned by 1001 so the unprivileged process can read
+      # the CA key (defaultMode 0440 below = owner+group read).
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: ssh-ca
+          image: demo-ssh-ca-app:k8s
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SERVICE_NAME
+              value: ssh-ca
+            - name: PORT
+              value: "3004"
+            - name: SSH_CA_KEY
+              value: /etc/ssh-ca/ca
+            - name: CERT_VALIDITY
+              value: "+15m"
+          ports:
+            - containerPort: 3004
+          volumeMounts:
+            - name: ca-key
+              mountPath: /etc/ssh-ca
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: ca-key
+          secret:
+            secretName: ssh-ca-key
+            # 0440 = owner + fsGroup read, no other. Decimal 288 (k8s YAML
+            # parses leading-zero values inconsistently across versions, so
+            # using decimal avoids ambiguity).
+            defaultMode: 288

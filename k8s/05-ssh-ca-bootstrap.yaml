@@ -1,0 +1,74 @@
+# Auto-generates the SSH CA keypair on first apply, then materializes it as
+# Secret/ssh-ca-key (private) and ConfigMap/ssh-ca-pub (public). Idempotent:
+# re-applies are no-ops once the Secret exists. Replaces the manual
+# `ssh-keygen` + `kubectl create configmap/secret` setup steps.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ssh-ca-bootstrap
+  namespace: ams-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ssh-ca-bootstrap
+  namespace: ams-demo
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ssh-ca-bootstrap
+  namespace: ams-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ssh-ca-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: ssh-ca-bootstrap
+    namespace: ams-demo
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ssh-ca-bootstrap
+  namespace: ams-demo
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    spec:
+      serviceAccountName: ssh-ca-bootstrap
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: alpine:3.20
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              echo "installing ssh-keygen + kubectl..."
+              apk add --no-cache openssh-keygen kubectl >/dev/null
+
+              if kubectl get secret ssh-ca-key -n ams-demo >/dev/null 2>&1; then
+                if kubectl get configmap ssh-ca-pub -n ams-demo >/dev/null 2>&1; then
+                  echo "ssh-ca-key + ssh-ca-pub already exist; nothing to do"
+                  exit 0
+                fi
+                echo "secret exists but configmap missing — deriving pubkey from private key"
+                kubectl get secret ssh-ca-key -n ams-demo -o jsonpath='{.data.ca}' | base64 -d > /tmp/ca
+                chmod 600 /tmp/ca
+                ssh-keygen -y -f /tmp/ca > /tmp/ca.pub
+                kubectl create configmap ssh-ca-pub --from-file=ca.pub=/tmp/ca.pub -n ams-demo
+                exit 0
+              fi
+
+              echo "generating new ed25519 SSH CA keypair..."
+              ssh-keygen -t ed25519 -f /tmp/ca -N "" -C "demo-ssh-ca" -q
+              kubectl create secret generic ssh-ca-key --from-file=ca=/tmp/ca         -n ams-demo
+              kubectl create configmap   ssh-ca-pub    --from-file=ca.pub=/tmp/ca.pub -n ams-demo
+              echo "done"
