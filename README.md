@@ -234,12 +234,13 @@ docker/                                   container build contexts (one folder p
   ssh-ca-app/                             SSH cert authority — HTTP, signs from JWT
   sshd-app/                               Ubuntu SSH server pod
   postgres-app/                           postgres:16-bookworm + pgaudit (locally built)
-keycloak/realm-export.json                Keycloak realm: users, clients, role mappings
 
 k8s/                                      Kubernetes manifests, applied with kubectl apply -f k8s/
-  00-namespace.yaml ... 73-sshd.yaml      ordered to make read-through obvious
-  config-src/                             non-manifest sources (envoy.yaml, init.sql) used to
-                                          regenerate ConfigMaps when edited
+  00-namespace.yaml ... 82-grafana-...    ordered to make read-through obvious
+  config-src/                             editable sources baked into ConfigMaps:
+    envoy.yaml                              → 30-envoy-config.yaml
+    postgres-init.sql                       → 40-postgres-init-cm.yaml
+    realm-export.json                       → 11-keycloak-realm-cm.yaml (Keycloak realm)
 
 follow-along/                             workshop modules — one self-contained file per backend
 demo-script.sh                            interactive paused walkthrough (color-coded)
