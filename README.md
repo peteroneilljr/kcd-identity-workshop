@@ -105,9 +105,13 @@ This is the same architectural pattern as Teleport, Vault SSH secrets engine, or
 
 `k8s/05-ssh-ca-bootstrap.yaml` runs once on first apply. It generates a fresh ed25519 keypair with `ssh-keygen` and creates the `Secret/ssh-ca-key` and `ConfigMap/ssh-ca-pub` that `ssh-ca` and `sshd` mount. Idempotent — re-applies are no-ops. Removes the manual "generate CA before applying" step that workshops can't tolerate.
 
+### Loki + Promtail — audit-trail surface in Grafana
+
+`Loki` (single-binary, deployed by `k8s/80-loki.yaml`) is the log-aggregation backend. `Promtail` (DaemonSet, `k8s/81-promtail.yaml`) auto-discovers pods in `ams-demo`, scrapes their stdout, and ships log lines to Loki with labels (`app`, `pod`, `container`). The existing Grafana is provisioned (`k8s/82-grafana-provisioning.yaml`) with Loki as a data source and a pre-built **Identity Audit Trail** dashboard, so the OIDC-protected dashboard you logged into in module 01 now actually has something to show: per-user request rate over time, 401/403/200 stat tiles, a filterable log stream. Same Envoy access log, surfaced for ops/admin consumption rather than `kubectl logs | jq`.
+
 ### Image mirror workflow — registry-independence
 
-`.github/workflows/mirror-images.yml` mirrors the 5 third-party images this stack pulls (alpine, postgres, grafana, envoy, keycloak) into GHCR using `docker buildx imagetools create` (preserves multi-arch manifests). The cluster pulls everything from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` instead of Docker Hub / Quay, so workshop attendees on shared conference Wi-Fi don't trip Docker Hub's anonymous pull rate limit.
+`.github/workflows/mirror-images.yml` mirrors the 7 third-party images this stack pulls (alpine, postgres, grafana, envoy, keycloak, loki, promtail) into GHCR using `docker buildx imagetools create` (preserves multi-arch manifests). The cluster pulls everything from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` instead of Docker Hub / Quay, so workshop attendees on shared conference Wi-Fi don't trip Docker Hub's anonymous pull rate limit.
 
 ## How identity flows through each backend
 

@@ -2,7 +2,7 @@
 
 Identity threads through every layer. This module is where that pays off — every HTTP request through Envoy lands in a structured access log with the verified user identity and the authorization decision already attached. No application instrumentation needed; no parsing IPs out of network logs and trying to figure out who they belonged to. Just `kubectl logs` and you can answer "what did alice do today?" or "did anyone get denied trying to read /bob?" in one query.
 
-[← back to index](README.md) · prev: [04-ssh-certs.md](04-ssh-certs.md) · next: [98-experiments.md](98-experiments.md)
+[← back to index](README.md) · prev: [04-ssh-certs.md](04-ssh-certs.md) · next: [06-grafana-audit.md](06-grafana-audit.md)
 
 ## Prerequisite
 
@@ -154,4 +154,4 @@ For compliance frameworks that ask "who accessed PII X on date Y" — that's a s
 
 ---
 
-→ Next: [**98-experiments.md**](98-experiments.md) — bonus experiments probing the edges of the security model (token expiration, tampered tokens, CA rotation).
+→ Next: [**06-grafana-audit.md**](06-grafana-audit.md) — same audit log, but in Grafana via Loki, with filters and live updates.

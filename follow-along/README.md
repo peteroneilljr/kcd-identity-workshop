@@ -22,7 +22,8 @@ The first pass is sequenced deliberately — OIDC first, because it's the founda
 | [02-http-authz.md](02-http-authz.md) | The same identity as a bearer JWT, validated at an API gateway | ~5 min |
 | [03-postgres-rls.md](03-postgres-rls.md) | Bridging that JWT into Postgres via SET ROLE + row-level security | ~5 min |
 | [04-ssh-certs.md](04-ssh-certs.md) | Bridging the JWT into SSH via short-lived CA-signed certs | ~5 min |
-| [05-audit-trail.md](05-audit-trail.md) | Per-request access log keyed on verified identity (the payoff) | ~5 min |
+| [05-audit-trail.md](05-audit-trail.md) | Per-request access log keyed on verified identity (`kubectl logs \| jq`) | ~5 min |
+| [06-grafana-audit.md](06-grafana-audit.md) | Same audit log, surfaced in Grafana via Loki + LogQL | ~5 min |
 | [98-experiments.md](98-experiments.md) | Bonus experiments — token expiration, tampering, CA rotation | ~5 min |
 | [99-cleanup.md](99-cleanup.md) | Cleanup and troubleshooting | — |
 

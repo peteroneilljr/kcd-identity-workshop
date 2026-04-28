@@ -86,6 +86,19 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/grafana
+            # Loki datasource provisioning (k8s/82-grafana-provisioning.yaml)
+            - name: ds-loki
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            # Dashboard provider config (tells Grafana to load dashboards
+            # from /var/lib/grafana/dashboards on startup)
+            - name: dash-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            # The actual dashboard JSON, loaded by the provider above
+            - name: dash-audit
+              mountPath: /var/lib/grafana/dashboards
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /api/health
@@ -102,3 +115,12 @@ spec:
       volumes:
         - name: data
           emptyDir: {}
+        - name: ds-loki
+          configMap:
+            name: grafana-datasources
+        - name: dash-provider
+          configMap:
+            name: grafana-dashboard-providers
+        - name: dash-audit
+          configMap:
+            name: grafana-dashboard-audit

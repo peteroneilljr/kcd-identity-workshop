@@ -1,0 +1,225 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: ams-demo
+data:
+  loki.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        uid: loki
+        url: http://loki:3100
+        isDefault: false
+        jsonData:
+          maxLines: 5000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-providers
+  namespace: ams-demo
+data:
+  providers.yaml: |
+    apiVersion: 1
+    providers:
+      - name: workshop
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-audit
+  namespace: ams-demo
+data:
+  audit-trail.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "uid": "audit-trail",
+      "title": "Identity Audit Trail",
+      "tags": ["workshop", "audit"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "10s",
+      "time": {"from": "now-15m", "to": "now"},
+      "templating": {
+        "list": [
+          {
+            "name": "user",
+            "label": "User",
+            "type": "query",
+            "datasource": {"type": "loki", "uid": "loki"},
+            "query": "label_values({namespace=\"ams-demo\", app=\"envoy\"} | json | __error__=\"\", user)",
+            "current": {"selected": false, "text": "All", "value": "$__all"},
+            "includeAll": true,
+            "multi": true,
+            "refresh": 2,
+            "sort": 1
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Total requests (range)",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(count_over_time({namespace=\"ams-demo\", app=\"envoy\"} | json | __error__=\"\" [$__range]))",
+              "queryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+            }
+          },
+          "options": {
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+            "colorMode": "value",
+            "graphMode": "area"
+          }
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "401 — unauthenticated",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(count_over_time({namespace=\"ams-demo\", app=\"envoy\"} | json | __error__=\"\" | status=\"401\" [$__range]))",
+              "queryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed", "fixedColor": "yellow"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "yellow", "value": null}]}
+            }
+          },
+          "options": {
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+            "colorMode": "value",
+            "graphMode": "area"
+          }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "403 — RBAC denied",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(count_over_time({namespace=\"ams-demo\", app=\"envoy\"} | json | __error__=\"\" | status=\"403\" [$__range]))",
+              "queryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed", "fixedColor": "red"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}]}
+            }
+          },
+          "options": {
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+            "colorMode": "value",
+            "graphMode": "area"
+          }
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "200 — allowed",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(count_over_time({namespace=\"ams-demo\", app=\"envoy\"} | json | __error__=\"\" | status=\"200\" [$__range]))",
+              "queryType": "instant"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed", "fixedColor": "green"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+            }
+          },
+          "options": {
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+            "colorMode": "value",
+            "graphMode": "area"
+          }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Requests over time, by user",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4},
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (user) (count_over_time({namespace=\"ams-demo\", app=\"envoy\"} | json | __error__=\"\" [$__interval]))",
+              "legendFormat": "{{user}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 10,
+                "stacking": {"mode": "none", "group": "A"}
+              }
+            }
+          }
+        },
+        {
+          "id": 6,
+          "type": "logs",
+          "title": "Envoy access log — filtered by selected user(s)",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "gridPos": {"h": 14, "w": 24, "x": 0, "y": 12},
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "{namespace=\"ams-demo\", app=\"envoy\"} | json | __error__=\"\" | user=~\"$user\""
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "showLabels": false,
+            "showCommonLabels": false,
+            "wrapLogMessage": false,
+            "prettifyLogMessage": false,
+            "enableLogDetails": true,
+            "dedupStrategy": "none",
+            "sortOrder": "Descending"
+          }
+        }
+      ]
+    }
