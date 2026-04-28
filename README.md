@@ -1,4 +1,4 @@
-# KCD Identity Workshop: One Keycloak Login, Four Backends
+# KCD Identity Workshop: Using identity for direct secure access to infrastructure
 
 This repo demonstrates **per-user identity-based access control** across four different backend technologies, all keyed off a single Keycloak identity. It's a study in *what each request* and *each session* can be gated on at the application/data/protocol layer — the inverse of VPN-style network-level trust.
 
