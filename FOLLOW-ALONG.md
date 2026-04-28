@@ -1,512 +1,349 @@
-# Follow Along Guide: Reverse Proxy Demo
+# Follow-Along Guide
 
-This guide allows you to follow along with the demo step-by-step. Each command can be copy-pasted into your terminal.
+Step-by-step, copy-paste-ready. By the end you'll have logged in as `alice` and `bob`, hit four different backends with the same Keycloak identity, and seen each one enforce who-sees-what.
+
+The four enforcement points exercised here:
+
+| # | Backend     | What enforces identity                                   |
+| - | ----------- | -------------------------------------------------------- |
+| 1 | HTTP apps   | Envoy `jwt_authn` + `rbac` filter on `preferred_username` |
+| 2 | Postgres    | `SET ROLE <jwt-username>` inside a tx + RLS on `current_user` |
+| 3 | Grafana     | Native OIDC code flow against Keycloak; JMESPath role mapping |
+| 4 | SSH         | 15-min cert signed with principal = JWT username         |
 
 ## Prerequisites
 
-Before starting, ensure you have:
-- Docker and Docker Compose installed
-- `curl` command-line tool
-- `jq` for JSON parsing (`brew install jq` on Mac, `apt-get install jq` on Ubuntu)
-- Terminal access
+- A running Kubernetes cluster (Docker Desktop's k8s, kind, minikube, …)
+- `kubectl`, `docker` (to build the local app images)
+- `curl`, `jq`, `python3`, `ssh`, `ssh-keygen`, `nc` for the client-side flows
 
-## Setup (5 minutes)
+## Setup
 
-### Step 1: Clone the Repository
+### 1. Build the local app images
+
+Docker Desktop's k8s shares the docker daemon's image cache automatically. On plain `kind`, follow each build with `kind load docker-image <tag>`.
 
 ```bash
-git clone <repository-url>
-cd kubecon-ams-demo-v2
+docker build -t demo-public-app:k8s   ./public-app
+docker build -t demo-alice-app:k8s    ./alice-app
+docker build -t demo-bob-app:k8s      ./bob-app
+docker build -t demo-db-app:k8s       ./db-app
+docker build -t demo-ssh-ca-app:k8s   ./ssh-ca-app
+docker build -t demo-sshd:k8s         ./sshd-app
 ```
 
-### Step 2: Start All Services
+### 2. Apply everything and wait for Ready
+
+The SSH CA keypair is auto-generated on first apply by a one-shot bootstrap Job (`k8s/05-ssh-ca-bootstrap.yaml`); no manual `ssh-keygen` step is required. The Job creates `Secret/ssh-ca-key` and `ConfigMap/ssh-ca-pub`, and the `ssh-ca` and `sshd` Deployments mount them.
 
 ```bash
-# Start services in detached mode
-docker-compose up -d
-
-# This will start:
-# - Keycloak (identity provider) on port 8180
-# - Envoy (reverse proxy) on port 8080
-# - public-app on port 3000 (internal)
-# - alice-app on port 3002 (internal)
-# - bob-app on port 3001 (internal)
+kubectl apply -f k8s/
+kubectl -n ams-demo wait --for=condition=Available --timeout=240s deploy --all
+kubectl -n ams-demo get pods
 ```
 
-### Step 3: Wait for Services to Be Ready
+Expect 10 pods Running plus a completed bootstrap Job:
 
 ```bash
-# Check service status
-docker-compose ps
-
-# Wait until all services show "healthy" or "running"
-# This typically takes 30-60 seconds
+kubectl -n ams-demo get job ssh-ca-bootstrap
+# NAME               STATUS     COMPLETIONS   DURATION   AGE
+# ssh-ca-bootstrap   Complete   1/1           ...        ...
 ```
 
-### Step 4: Verify Keycloak is Ready
+### 3. Open user-facing ports
 
 ```bash
-# Test Keycloak endpoint
-curl -s http://localhost:8180/realms/demo/.well-known/openid-configuration | jq -r '.issuer'
+kubectl -n ams-demo port-forward svc/keycloak 8180:8180 &
+kubectl -n ams-demo port-forward svc/envoy    8080:8080 &
+kubectl -n ams-demo port-forward svc/grafana  3300:3000 &
+kubectl -n ams-demo port-forward svc/sshd     2222:22   &
+```
 
-# Expected output: http://localhost:8180/realms/demo
+Quick sanity check:
+
+```bash
+curl -s -o /dev/null -w "kc=%{http_code}\n" http://localhost:8180/realms/demo
+curl -s -o /dev/null -w "envoy=%{http_code}\n" http://localhost:8080/health
+curl -s -o /dev/null -w "graf=%{http_code}\n" http://localhost:3300/api/health
+nc -z localhost 2222 && echo "sshd=open"
 ```
 
 ---
 
-## Part 1: Unauthenticated Access (FAILS)
+## Part 1 — HTTP (Envoy + JWT + RBAC)
 
-### Step 5: Try Accessing Without Authentication
+### Anon: every authenticated route is locked
 
 ```bash
-# Try to access public app without token
-curl -i http://localhost:8080/public
-
-# Expected: 401 Unauthorized
-# Message: "Jwt is missing"
+curl -i http://localhost:8080/public  # 401
+curl -i http://localhost:8080/alice   # 401
+curl -i http://localhost:8080/bob     # 401
+curl -i http://localhost:8080/health  # 200 (the only public route)
 ```
 
-```bash
-# Try to access Alice's app without token
-curl -i http://localhost:8080/alice
+Envoy's `jwt_authn` filter rejects anything missing or with an invalid bearer.
 
-# Expected: 401 Unauthorized
-```
+### Get a token and inspect it
 
 ```bash
-# Try to access Bob's app without token
-curl -i http://localhost:8080/bob
-
-# Expected: 401 Unauthorized
-```
-
-**Key Point**: Envoy's JWT authentication filter blocks all unauthenticated requests.
-
----
-
-## Part 2: Alice's Journey
-
-### Step 6: Authenticate as Alice
-
-```bash
-# Get JWT token for Alice
 TOKEN_ALICE=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=alice" \
-  -d "password=password" \
-  -d "grant_type=password" \
-  -d "client_id=demo-client" \
-  | jq -r '.access_token')
+  -d "client_id=demo-client&grant_type=password&username=alice&password=password" | jq -r .access_token)
 
-# Verify token was obtained
-echo "Alice's token (first 50 chars): ${TOKEN_ALICE:0:50}..."
+# Decode the payload
+PAYLOAD=$(echo "$TOKEN_ALICE" | cut -d. -f2)
+case $((${#PAYLOAD} % 4)) in 2) PAYLOAD="${PAYLOAD}==" ;; 3) PAYLOAD="${PAYLOAD}=" ;; esac
+echo "$PAYLOAD" | base64 -d 2>/dev/null | jq '{username: .preferred_username, email, roles: .realm_access.roles, exp}'
 ```
 
-### Step 7: Decode Alice's JWT (Optional)
+Expect:
 
-```bash
-# Extract and decode JWT payload
-PAYLOAD=$(echo "$TOKEN_ALICE" | cut -d'.' -f2)
-
-# Add padding for base64 decode
-case $((${#PAYLOAD} % 4)) in
-  2) PAYLOAD="${PAYLOAD}==" ;;
-  3) PAYLOAD="${PAYLOAD}=" ;;
-esac
-
-# View JWT claims
-echo "$PAYLOAD" | base64 -d 2>/dev/null | jq '{
-  username: .preferred_username,
-  email: .email,
-  roles: .realm_access.roles,
-  expires: .exp
-}'
-```
-
-**Expected Output**:
 ```json
-{
-  "username": "alice",
-  "email": "alice@demo.local",
-  "roles": ["user"],
-  "expires": 1234567890
-}
+{ "username": "alice", "email": "alice@demo.local", "roles": ["user"], "exp": 1234567890 }
 ```
 
-### Step 8: Alice Accesses Public App ✓
+### alice can hit `/public` and `/alice`, but not `/bob`
 
 ```bash
-# Alice can access public app
-curl -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/public | jq '.'
-
-# Expected: 200 OK
-# Shows: "Welcome to the Public Service!"
+curl -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/public | jq '{authenticated_user, jwt_claims}'
+curl -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/alice  | jq '{authenticated_user, jwt_claims}'
+curl -i -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/bob   # 403
 ```
 
-### Step 9: Alice Accesses Her Own App ✓
+The 403 is the moment that matters: Alice has a valid token, but the RBAC policy `allow-bob-only` requires `preferred_username == "bob"`.
+
+### bob is the mirror image — and admin role doesn't override it
 
 ```bash
-# Alice can access her own app
-curl -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/alice | jq '.'
-
-# Expected: 200 OK
-# Shows: "Welcome to Alice's personal service!"
-```
-
-**Key Point**: Envoy's RBAC filter checks that `preferred_username == "alice"` for `/alice` route.
-
-### Step 10: Alice Tries to Access Bob's App ✗
-
-```bash
-# Alice CANNOT access Bob's app
-curl -i -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/bob
-
-# Expected: 403 Forbidden
-# Message: "RBAC: access denied"
-```
-
-**🎯 KEY MOMENT**: Alice is authenticated (has valid token) but NOT authorized to access Bob's resources!
-
----
-
-## Part 3: Bob's Journey
-
-### Step 11: Authenticate as Bob
-
-```bash
-# Get JWT token for Bob
 TOKEN_BOB=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=bob" \
-  -d "password=password" \
-  -d "grant_type=password" \
-  -d "client_id=demo-client" \
-  | jq -r '.access_token')
+  -d "client_id=demo-client&grant_type=password&username=bob&password=password" | jq -r .access_token)
 
-# Verify token was obtained
-echo "Bob's token (first 50 chars): ${TOKEN_BOB:0:50}..."
+curl    -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/public  # 200
+curl    -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/bob     # 200
+curl -i -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/alice   # 403
 ```
 
-### Step 12: Decode Bob's JWT (Optional)
+Bob has the `admin` realm role. RBAC keys on identity, not roles, so admin doesn't help here.
+
+---
+
+## Part 2 — Postgres (SET ROLE + RLS)
+
+`/db` is reachable by any authenticated user; the database itself filters per-row using `current_user` after `db-app` runs `SET LOCAL ROLE "<jwt-username>"` inside a transaction.
 
 ```bash
-# Extract and decode JWT payload
-PAYLOAD=$(echo "$TOKEN_BOB" | cut -d'.' -f2)
-
-# Add padding for base64 decode
-case $((${#PAYLOAD} % 4)) in
-  2) PAYLOAD="${PAYLOAD}==" ;;
-  3) PAYLOAD="${PAYLOAD}=" ;;
-esac
-
-# View JWT claims
-echo "$PAYLOAD" | base64 -d 2>/dev/null | jq '{
-  username: .preferred_username,
-  email: .email,
-  roles: .realm_access.roles,
-  expires: .exp
-}'
+curl -s -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/db | jq '.visible_documents'
 ```
 
-**Expected Output**:
+Expect alice's two rows + the `public` row, never bob's:
+
 ```json
-{
-  "username": "bob",
-  "email": "bob@demo.local",
-  "roles": ["user", "admin"],
-  "expires": 1234567890
-}
+[
+  { "id": 1, "owner": "alice",  "title": "Alice notes",          "body": "..." },
+  { "id": 2, "owner": "alice",  "title": "Alice TODO",           "body": "..." },
+  { "id": 5, "owner": "public", "title": "Shared announcement",  "body": "..." }
+]
 ```
-
-**Note**: Bob has "admin" role, but this won't help him access Alice's app!
-
-### Step 13: Bob Accesses Public App ✓
 
 ```bash
-# Bob can access public app
-curl -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/public | jq '.'
-
-# Expected: 200 OK
-# Shows: "Welcome to the Public Service!"
+curl -s -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/db | jq '.visible_documents'
 ```
 
-### Step 14: Bob Tries to Access Alice's App ✗
+Mirror image — bob sees only `{bob, public}`.
+
+The trust boundary is the database, not `db-app`. Even if `db-app` had a bug, the RLS policy `USING (owner = current_user OR owner = 'public')` would still scope rows to the current role.
+
+### Optional: interactive psql against the same DB
 
 ```bash
-# Bob CANNOT access Alice's app (even though he's an admin!)
-curl -i -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/alice
-
-# Expected: 403 Forbidden
-# Message: "RBAC: access denied"
+kubectl -n ams-demo port-forward svc/postgres 5432:5432 &
+PGPASSWORD=dbproxy psql -h localhost -U dbproxy demo
+demo=> SET ROLE alice;
+demo=> SELECT * FROM documents;             -- alice's view
+demo=> RESET ROLE; SET ROLE bob;
+demo=> SELECT * FROM documents;             -- bob's view
+demo=> RESET ROLE;
+demo=> SELECT * FROM documents;             -- dbproxy with no role: blank, RLS denies all
 ```
 
-**🎯 KEY MOMENT**: Even though Bob has "admin" role, he's denied access to Alice's resources. This demonstrates true zero-trust per-user authorization!
-
-### Step 15: Bob Accesses His Own App ✓
-
-```bash
-# Bob can access his own app
-curl -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/bob | jq '.'
-
-# Expected: 200 OK
-# Shows: "Welcome to Bob's personal service!"
-```
+`dbproxy` is `NOINHERIT`, so it has no privileges on its own — only what it inherits via `SET ROLE`.
 
 ---
 
-## Part 4: Audit Trail
+## Part 3 — Grafana (OIDC code flow)
 
-### Step 16: View Access Logs
+Grafana speaks OIDC natively, so it goes straight to Keycloak — Envoy is **not** in this path.
 
-```bash
-# View Envoy access logs
-docker-compose logs envoy | tail -20
+### Browser flow
 
-# Look for JSON log entries showing:
-# - user: "alice" or "bob"
-# - path: "/public", "/alice", "/bob"
-# - status: 200 (allowed) or 403 (denied)
+Open <http://localhost:3300/login> → click **Sign in with Keycloak** → log in as `alice/password` or `bob/password`.
+
+First login auto-provisions the user in Grafana. You'll land in the Grafana UI as that user.
+
+### What role you'll get
+
+Grafana maps Keycloak's `realm_access.roles` to a Grafana org role with this JMESPath:
+
+```ini
+role_attribute_path = contains(realm_access.roles[*], 'admin') && 'Admin' || 'Viewer'
 ```
 
-**Example Log Entry**:
-```json
-{
-  "timestamp": "2024-01-20T10:30:45.123Z",
-  "method": "GET",
-  "path": "/alice",
-  "status": 403,
-  "duration_ms": 5,
-  "user": "bob",
-  "roles": ["user", "admin"],
-  "response_flags": "RBAC_ACCESS_DENIED"
-}
+So:
+- `alice` (realm roles `[user]`) → Grafana **Viewer**
+- `bob`   (realm roles `[user, admin]`) → Grafana **Admin**
+
+### Verify with the API after logging in
+
+In the same browser session that just logged in:
+
+```
+http://localhost:3300/api/user/orgs
 ```
 
-### Step 17: Search for Denied Access Attempts
-
-```bash
-# Find all 403 Forbidden responses
-docker-compose logs envoy | grep '"status":403'
-
-# This shows all unauthorized access attempts
-# Great for security monitoring!
-```
+You'll see something like `[{"orgId":1,"name":"Main Org.","role":"Admin"}]` for bob, `Viewer` for alice. `isExternallySynced=true` on `/api/user` confirms Grafana sourced the user from Keycloak rather than its local DB.
 
 ---
 
-## Part 5: Understanding the Architecture
+## Part 4 — SSH (CA-signed short-lived certs)
 
-### Step 18: Inspect JWT Token Structure
+The pattern: HTTP `POST /ssh-ca/sign` your SSH public key with a Keycloak token. Get back a 15-minute SSH cert whose `Principal` is your JWT username. sshd trusts the CA's pubkey but only honors certs whose principal matches the per-user `auth_principals/<user>` file.
 
-```bash
-# View full JWT structure
-echo "$TOKEN_ALICE" | cut -d'.' -f1 | base64 -d 2>/dev/null | jq '.'  # Header
-echo "$TOKEN_ALICE" | cut -d'.' -f2 | base64 -d 2>/dev/null | jq '.'  # Payload
-# Signature is the third part (binary, not human-readable)
-```
-
-**JWT Structure**:
-- **Header**: Algorithm (RS256), token type (JWT)
-- **Payload**: User claims (username, email, roles, expiration)
-- **Signature**: Cryptographic signature (prevents tampering)
-
-### Step 19: View Keycloak's Public Keys
+### One-time: a local SSH keypair
 
 ```bash
-# See the public keys Envoy uses to verify JWT signatures
-curl -s http://localhost:8180/realms/demo/protocol/openid-connect/certs | jq '.'
-
-# These keys prove the token was issued by Keycloak
+ssh-keygen -t ed25519 -f ~/.ssh/keycloak_id -N "" -C "$(whoami)@laptop"
 ```
 
-### Step 20: Check Envoy Admin Interface
+### Sign a cert for alice
 
 ```bash
-# View Envoy's runtime configuration
-curl -s http://localhost:9901/config_dump | jq '.configs[] | select(.["@type"] | contains("jwt_authn"))'
+TOKEN_ALICE=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
+  -d "client_id=demo-client&grant_type=password&username=alice&password=password" | jq -r .access_token)
 
-# This shows how Envoy is configured for JWT authentication
+curl -sf -X POST -H "Authorization: Bearer $TOKEN_ALICE" \
+  -H "Content-Type: text/plain" --data-binary @"$HOME/.ssh/keycloak_id.pub" \
+  http://localhost:8080/ssh-ca/sign > "$HOME/.ssh/keycloak_id-cert.pub"
+
+ssh-keygen -L -f ~/.ssh/keycloak_id-cert.pub | head -10
 ```
+
+Expect to see `Principals: alice` and a `Valid:` window of about 15 minutes.
+
+### ssh in as alice (the cert beside the key is picked up automatically)
+
+```bash
+ssh -i ~/.ssh/keycloak_id -p 2222 alice@localhost
+# inside the session:
+whoami        # alice
+hostname      # sshd-...
+cat /etc/os-release | head -2
+exit
+```
+
+### alice's cert is rejected as bob
+
+```bash
+ssh -i ~/.ssh/keycloak_id -p 2222 bob@localhost whoami
+# Permission denied (publickey).
+```
+
+`auth_principals/bob` only contains `bob`. The cert's principal is `alice`, so sshd refuses even though the CA-signed cert is technically valid.
+
+### Now sign a cert for bob and ssh in as bob
+
+```bash
+TOKEN_BOB=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
+  -d "client_id=demo-client&grant_type=password&username=bob&password=password" | jq -r .access_token)
+
+curl -sf -X POST -H "Authorization: Bearer $TOKEN_BOB" \
+  -H "Content-Type: text/plain" --data-binary @"$HOME/.ssh/keycloak_id.pub" \
+  http://localhost:8080/ssh-ca/sign > "$HOME/.ssh/keycloak_id-cert.pub"
+
+ssh -i ~/.ssh/keycloak_id -p 2222 bob@localhost whoami   # bob
+```
+
+You overwrite the `*-cert.pub`; the ssh client picks up the new principal automatically. Same private key, different identity, controlled by which Keycloak token you used to sign.
 
 ---
 
-## Experiments to Try
+## Experiments
 
-### Experiment 1: Token Expiration
-
-```bash
-# Wait 5 minutes for token to expire, then try again
-sleep 300
-
-# Try with expired token
-curl -i -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/alice
-
-# Expected: 401 Unauthorized (token expired)
-```
-
-### Experiment 2: Modified Token (Attack Simulation)
+### Token expiration
 
 ```bash
-# Try to modify the token (simulate attack)
-FAKE_TOKEN="${TOKEN_ALICE:0:50}HACKED${TOKEN_ALICE:56}"
-
-curl -i -H "Authorization: Bearer $FAKE_TOKEN" http://localhost:8080/alice
-
-# Expected: 401 Unauthorized
-# Reason: Signature verification fails
+sleep 305
+curl -i -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/alice    # 401, exp passed
 ```
 
-### Experiment 3: View All Access Patterns
+### Tampered token
 
 ```bash
-# Create a summary of all access attempts
-echo "=== Alice's Access Pattern ==="
-echo "Public app:  $(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/public)"
-echo "Alice's app: $(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/alice)"
-echo "Bob's app:   $(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/bob)"
-
-echo ""
-echo "=== Bob's Access Pattern ==="
-echo "Public app:  $(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/public)"
-echo "Alice's app: $(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/alice)"
-echo "Bob's app:   $(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN_BOB" http://localhost:8080/bob)"
+FAKE="${TOKEN_ALICE:0:50}HACKED${TOKEN_ALICE:56}"
+curl -i -H "Authorization: Bearer $FAKE" http://localhost:8080/alice           # 401, signature invalid
 ```
 
-**Expected Output**:
-```
-=== Alice's Access Pattern ===
-Public app:  200
-Alice's app: 200
-Bob's app:   403
+### Cross-cutting access matrix (one-liner)
 
-=== Bob's Access Pattern ===
-Public app:  200
-Alice's app: 403
-Bob's app:   200
-```
-
----
-
-## Access Control Matrix
-
-```
-┌─────────────┬──────────┬────────────┬──────────┐
-│   User      │ /public  │  /alice    │  /bob    │
-├─────────────┼──────────┼────────────┼──────────┤
-│ No Auth     │    401   │    401     │   401    │
-│ Alice       │    200   │    200 ✓   │   403 ✗  │
-│ Bob         │    200   │    403 ✗   │   200 ✓  │
-└─────────────┴──────────┴────────────┴──────────┘
+```bash
+for U in alice bob; do
+  T=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
+       -d "client_id=demo-client&grant_type=password&username=$U&password=password" | jq -r .access_token)
+  for P in /public /alice /bob /db; do
+    printf "%-5s %-8s -> %s\n" "$U" "$P" "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T" http://localhost:8080$P)"
+  done
+done
 ```
 
----
+Expected:
 
-## Key Takeaways
+```
+alice /public   -> 200
+alice /alice    -> 200
+alice /bob      -> 403
+alice /db       -> 200
+bob   /public   -> 200
+bob   /alice    -> 403
+bob   /bob      -> 200
+bob   /db       -> 200
+```
 
-### 1. Authentication vs Authorization
-- **Authentication** (401): Proves who you are (JWT validation)
-- **Authorization** (403): Proves what you can access (RBAC policies)
+### Run the full assertion suite
 
-### 2. Zero Trust in Action
-- Every request is validated
-- Even "admin" users don't get universal access
-- Identity checked at the proxy layer
+```bash
+./tests/test-demo.sh
+```
 
-### 3. Least Privilege
-- Alice gets exactly Alice's resources
-- Bob gets exactly Bob's resources
-- No lateral movement possible
-
-### 4. Compare to VPN
-- **VPN**: Network-level access → Alice and Bob can reach everything
-- **Reverse Proxy**: Resource-level access → Alice and Bob get only their resources
-
-### 5. Complete Audit Trail
-- Every request logged with user identity
-- Security teams can see who accessed what
-- Compliance requirements satisfied
+25 assertions across all four suites. Should print `ALL 25 ASSERTIONS PASSED`.
 
 ---
 
 ## Cleanup
 
-### When You're Done
-
 ```bash
-# Stop all services
-docker-compose down
+# Stop port-forwards
+pkill -f "kubectl port-forward"
 
-# Remove volumes (reset Keycloak data)
-docker-compose down -v
-
-# Remove built images (optional)
-docker-compose down --rmi local
+# Tear down everything
+kubectl delete namespace ams-demo
 ```
 
 ---
 
 ## Troubleshooting
 
-### Problem: Services won't start
+**`namespace ams-demo not found`** — you skipped step 3. Run `kubectl apply -f k8s/`.
 
-```bash
-# Check logs
-docker-compose logs
+**`401 Jwt is missing`** — your token expired (5 min lifetime by default) or you forgot the Authorization header. Re-fetch the token.
 
-# Restart everything
-docker-compose down
-docker-compose up -d
-```
+**`403 access denied`** — that's the demo working. alice can't read `/bob`; bob can't read `/alice`.
 
-### Problem: "Jwt is missing" error
+**`no jwt identity` from `/db` or `/ssh-ca/sign`** — Envoy didn't forward `x-jwt-payload`. Check `kubectl -n ams-demo logs deploy/envoy | grep -i jwt`.
 
-```bash
-# Make sure you included the Authorization header
-# Check token is not empty
-echo "Token length: ${#TOKEN_ALICE}"
+**Grafana SSO button does nothing** — confirm `kubectl -n ams-demo get pod -l app=grafana` shows Ready. The container takes ~10s to fully boot OIDC after the readiness probe passes.
 
-# If empty, re-authenticate
-TOKEN_ALICE=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
-  -d "username=alice&password=password&grant_type=password&client_id=demo-client" \
-  | jq -r '.access_token')
-```
+**SSH `Permission denied (publickey)` for the same-user case** — your cert may have expired. Re-sign with a fresh token. `ssh-keygen -L -f ~/.ssh/keycloak_id-cert.pub` shows the validity window.
 
-### Problem: 403 Forbidden when you expect 200
-
-Check:
-- Alice cannot access `/bob` → 403 is correct
-- Bob cannot access `/alice` → 403 is correct
-- Only deny `/public` access would be unexpected (should be 200 for both)
-
-### Problem: jq command not found
-
-```bash
-# Install jq
-# macOS
-brew install jq
-
-# Ubuntu/Debian
-sudo apt-get install jq
-
-# Or view raw JSON without jq
-curl -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/public
-```
+**Pod stuck in `ImagePullBackOff` for postgres or ubuntu** — transient registry hiccup. `docker pull postgres:16-alpine ubuntu:22.04` to warm the local cache and the kubelet will retry.
 
 ---
 
-## Automated Demo Script
-
-If you prefer an automated version:
-
-```bash
-# Run the full demo automatically
-./demo-script.sh
-
-# This will execute all steps with explanations
-```
-
----
-
-**End of Follow-Along Guide** 🎉
-
-You now understand how reverse proxies provide identity-aware, least-privilege access control!
+**End of guide.** You've now seen one Keycloak identity reach four heterogeneous backends — HTTP, SQL, dashboard UI, shell — with a different enforcement mechanism at each layer.
