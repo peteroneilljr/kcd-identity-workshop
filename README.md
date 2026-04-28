@@ -1,8 +1,8 @@
 # Signed, Sealed, Delivered: Identity-Aware Access Demo
 
-This repo demonstrates **per-user identity-based access control** across four different backend technologies, all keyed off a single Keycloak identity. It contrasts with traditional VPN-style access (network on/off) by showing what *each request* and *each session* can be gated on at the application/data/protocol layer.
+This repo demonstrates **per-user identity-based access control** across four different backend technologies, all keyed off a single Keycloak identity. It's a study in *what each request* and *each session* can be gated on at the application/data/protocol layer — the inverse of VPN-style network-level trust.
 
-The user logs into Keycloak once. From there, the same identity controls:
+The user authenticates to Keycloak once. From there, the same identity controls:
 
 | Backend | Mechanism | What's enforced |
 |---|---|---|
@@ -11,58 +11,9 @@ The user logs into Keycloak once. From there, the same identity controls:
 | Grafana dashboard | OIDC code flow direct to Keycloak | Identity + role mapping (Admin/Viewer) |
 | Ubuntu SSH | Short-lived SSH cert signed from JWT, principals = JWT username | Per-user shell access |
 
-## Run it
-
-Prereqs: a running cluster (Docker Desktop's k8s, kind, minikube, etc.), `kubectl`, `docker`, plus `curl`, `jq`, `ssh-keygen`, `ssh`, `python3` for the test driver.
-
-```bash
-# 1. Build the local app images. Docker Desktop's k8s shares the docker daemon's
-#    image cache, so no push-to-registry is needed; on plain kind run
-#    `kind load docker-image demo-...:k8s` after each build.
-docker build -t demo-public-app:k8s   ./public-app
-docker build -t demo-alice-app:k8s    ./alice-app
-docker build -t demo-bob-app:k8s      ./bob-app
-docker build -t demo-db-app:k8s       ./db-app
-docker build -t demo-ssh-ca-app:k8s   ./ssh-ca-app
-docker build -t demo-sshd:k8s         ./sshd-app
-
-# 2. Apply everything. The SSH CA keypair is auto-generated on first apply
-#    by a one-shot bootstrap Job (k8s/05-ssh-ca-bootstrap.yaml) — no
-#    manual ssh-keygen step required. Re-applies are no-ops if the Secret
-#    already exists.
-#
-#    The 5 third-party base images (keycloak, envoy, postgres, grafana,
-#    alpine) are pulled from `ghcr.io/peteroneilljr/kcd-identity-workshop/*`
-#    rather than Docker Hub / Quay, to avoid hitting anonymous-pull rate
-#    limits during the workshop. They're mirrored automatically by
-#    .github/workflows/mirror-images.yml.
-kubectl apply -f k8s/
-
-# 3. Wait for ready (≈30s on a warm cluster, longer on first pull).
-kubectl -n ams-demo wait --for=condition=Available --timeout=240s deploy --all
-
-# 4. Open the user-facing ports.
-kubectl -n ams-demo port-forward svc/keycloak 8180:8180 &
-kubectl -n ams-demo port-forward svc/envoy    8080:8080 &
-kubectl -n ams-demo port-forward svc/grafana  3300:3000 &
-kubectl -n ams-demo port-forward svc/sshd     2222:22   &
-```
-
-Then run the full assertion suite:
-
-```bash
-./tests/test-demo.sh
-```
-
-For an interactive, paused, color-coded walkthrough:
-
-```bash
-./demo-script.sh
-```
+> **Hands-on workshop modules** live in [`follow-along/`](follow-along/) — one self-contained file per backend, each runnable in ~5 minutes. This README is a tour of *what* and *why*; that directory is the *how*.
 
 ## Architecture
-
-Two distinct integration patterns live in this demo:
 
 ```
                                 ┌──────────────────────┐
@@ -95,111 +46,131 @@ Two distinct integration patterns live in this demo:
                           Grafana port 3000 ◄──── browser code flow ──┘
 ```
 
-Things behind Envoy (apps, db-app, ssh-ca) all share the same JWT-validated-and-forwarded pattern. Grafana speaks OIDC natively so it goes straight to Keycloak. sshd doesn't speak HTTP at all — its trust comes from the CA public key, baked in via ConfigMap.
+Two distinct integration patterns coexist:
 
-## How each integration works
+- **Behind Envoy** (apps, `db-app`, `ssh-ca`): Envoy is the choke point. It validates JWTs, enforces RBAC, and forwards verified claims to upstreams as `x-jwt-payload`. Backends trust Envoy's decision and use the forwarded identity for their own authorization layer.
+- **Side channels** (Grafana, sshd): protocol-native. Grafana speaks OIDC and goes straight to Keycloak; sshd speaks SSH cert auth and trusts the demo CA's pubkey baked into a ConfigMap. Putting Envoy in front of either would break their native auth flows.
 
-### 1. HTTP authz: Envoy JWT + RBAC
+## Components
 
-Envoy is the choke point for `/public`, `/alice`, `/bob`, plus `/db` and `/ssh-ca/` (those last two are explained below).
+What each tool is, and why it's in this stack.
 
-- `envoy.filters.http.jwt_authn` validates Authorization-bearer JWTs against Keycloak's JWKS, decodes the payload into Envoy metadata, and forwards it to the upstream as the `x-jwt-payload` header.
-- `envoy.filters.http.rbac` matches request path against the JWT's `preferred_username`:
+### Keycloak — identity provider
+
+The single source of truth for *who* a user is. Hosts the `demo` realm with two users (`alice`, `bob`), the `demo-client` (used for password-grant flows by curl + apps), and the `grafana` confidential client (used for Grafana's OIDC code flow). It signs JWTs with RS256, publishes its public keys at a JWKS endpoint, and serves the standard OIDC discovery document. Everything else in this stack defers to Keycloak for "is this person who they say they are?"
+
+### Envoy — gateway and authz enforcement layer
+
+A single ingress for the HTTP services. Two filters do the work:
+
+- `envoy.filters.http.jwt_authn` — fetches Keycloak's JWKS, verifies bearer JWTs on every request, decodes claims into per-request metadata, and forwards them to the upstream as the `x-jwt-payload` header.
+- `envoy.filters.http.rbac` — matches request path against a verified claim (here, `preferred_username`) and decides ALLOW or DENY per route.
+
+Backends never have to validate anything themselves; they trust Envoy and read forwarded claims for context. Adding a new HTTP service is just a new cluster + route + RBAC policy in `envoy.yaml`.
+
+### Postgres + db-app — JWT identity bridged into a non-JWT system
+
+Postgres can't validate JWTs natively. `db-app` is a thin Node service that reads the JWT identity Envoy forwarded, opens a tx, runs `SET LOCAL ROLE "<username>"`, and queries. Postgres' row-level security (`USING owner = current_user OR owner = 'public'`) then filters per row at the DB layer — *not* at the application. The `dbproxy` connection user is `NOINHERIT` and has no privileges of its own, so the only way to see anyone's data is via `SET ROLE`. The trust boundary is the database.
+
+### Grafana — OIDC-native dashboard
+
+Grafana's `auth.generic_oauth` provider is configured to do the standard OAuth2 authorization-code flow against Keycloak. The browser bounces to Keycloak, the user signs in, Keycloak redirects back with a code, Grafana exchanges it for tokens, reads the user's identity and `realm_access.roles` claim, and (on first login) auto-provisions a Grafana user. A JMESPath role-attribute mapping turns the realm role `admin` into Grafana role `Admin`; everything else is `Viewer`.
+
+This part is a study in contrast: Envoy is *not* in the path, because OAuth code-flow redirects don't compose well with bearer-JWT gateways.
+
+### ssh-ca + sshd — short-lived certificates from a JWT
+
+`ssh-ca` is another small HTTP service behind Envoy. On `POST /ssh-ca/sign` with a valid JWT and your SSH public key, it shells out to `ssh-keygen -s ca -n <preferred_username> -V +15m <userkey>` and returns a 15-minute SSH user certificate. The cert's `Principal` is set strictly from the JWT — clients can't ask to be signed for someone else.
+
+`sshd` runs in an Ubuntu pod with `TrustedUserCAKeys /etc/ssh/ca.pub` (the demo CA's public key, mounted from a ConfigMap), per-user `AuthorizedPrincipalsFile`s, and `AuthorizedKeysFile=none`. So the *only* way in is a CA-signed cert whose principal matches the unix username — alice's cert can never log in as bob.
+
+This is the same architectural pattern as Teleport, Vault SSH secrets engine, or smallstep — *use OIDC to obtain short-lived signed credentials, then use those for the protocol's native auth*. Doing it ourselves in ~50 lines of Node + a few manifests demystifies what those products are doing internally.
+
+### Bootstrap Job — zero-touch CA generation
+
+`k8s/05-ssh-ca-bootstrap.yaml` runs once on first apply. It generates a fresh ed25519 keypair with `ssh-keygen` and creates the `Secret/ssh-ca-key` and `ConfigMap/ssh-ca-pub` that `ssh-ca` and `sshd` mount. Idempotent — re-applies are no-ops. Removes the manual "generate CA before applying" step that workshops can't tolerate.
+
+### Image mirror workflow — registry-independence
+
+`.github/workflows/mirror-images.yml` mirrors the 5 third-party images this stack pulls (alpine, postgres, grafana, envoy, keycloak) into GHCR using `docker buildx imagetools create` (preserves multi-arch manifests). The cluster pulls everything from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` instead of Docker Hub / Quay, so workshop attendees on shared conference Wi-Fi don't trip Docker Hub's anonymous pull rate limit.
+
+## How identity flows through each backend
+
+### 1. HTTP via Envoy JWT + RBAC
+
+The conceptual flow:
+
+```
+client ──Bearer JWT──► Envoy ──verify sig────► validate iss/exp ────►
+                              ──extract claims──► put in metadata ───►
+                              ──RBAC: path × preferred_username────►
+                              ──forward x-jwt-payload──► backend
+```
+
+The RBAC policies key on **identity**, not roles:
 
 ```yaml
-"allow-public":      # /public, /health, /db, /ssh-ca to anyone authenticated
-  principals: [any: true]
-"allow-alice-only":  # /alice only when preferred_username == "alice"
-  principals: [metadata: jwt_payload.preferred_username == "alice"]
-"allow-bob-only":    # /bob only when preferred_username == "bob"
-  principals: [metadata: jwt_payload.preferred_username == "bob"]
+"allow-alice-only":  permissions: [/alice]   principals: [preferred_username == "alice"]
+"allow-bob-only":    permissions: [/bob]     principals: [preferred_username == "bob"]
+"allow-public":      permissions: [/public, /health, /db, /ssh-ca]   principals: [any: true]
 ```
 
-The backends themselves don't need to validate anything — they trust Envoy's decision and just read the forwarded `x-jwt-payload` for context.
+Bob has the `admin` realm role, but it doesn't unlock alice's app — RBAC checks the username, not the role. *Authentication ≠ authorization*.
 
-### 2. Database: SET ROLE + RLS keyed on Keycloak identity
+→ Hands-on: [`follow-along/01-http-authz.md`](follow-along/01-http-authz.md)
 
-Postgres can't validate JWTs, so the *db-app* service does the bridge:
+### 2. Database via SET ROLE + RLS
 
-1. Envoy lets `/db` through for any authenticated user (RLS filters per-user, not the gateway).
-2. db-app decodes `x-jwt-payload`, reads `preferred_username`.
-3. Inside a transaction it runs `SET LOCAL ROLE "<username>"` before querying. `SET LOCAL` is rolled back at end-of-tx, so the role can't leak across pooled connections.
-4. Postgres roles `alice` and `bob` exist (`NOLOGIN`); a `dbproxy` login role is `NOINHERIT` and has `GRANT alice TO dbproxy`/`GRANT bob TO dbproxy`. The app holds no privileges until it `SET ROLE`s.
-5. The `documents` table has row-level security: `USING (owner = current_user OR owner = 'public')`. The DB itself is the trust boundary — even if db-app had a bug, an alice-tx couldn't read bob's rows.
+Same JWT, different enforcement layer:
 
-```bash
-TOKEN=$(curl -s -X POST http://localhost:8180/realms/demo/protocol/openid-connect/token \
-  -d "client_id=demo-client&grant_type=password&username=alice&password=password" | jq -r .access_token)
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/db | jq .visible_documents
-# alice sees alice's rows + the public row; bob sees bob's rows + public; never each other's.
+```
+client ──Bearer JWT──► Envoy ──verify──► forward x-jwt-payload ──► db-app
+                                                                      │
+                                              BEGIN; SET LOCAL ROLE "<jwt-user>";
+                                              SELECT * FROM documents;
+                                              COMMIT;
+                                                                      ▼
+                                                                 Postgres
+                                                                  RLS: owner = current_user
+                                                                       OR owner = 'public'
 ```
 
-For interactive psql against the same DB:
+The DB itself is the authority on who-sees-what. Even if `db-app` had a bug or got compromised, the worst case is running as `dbproxy`, which has no privileges of its own — only what it inherits via `SET ROLE`. RLS is enforced regardless of application correctness.
 
-```bash
-kubectl -n ams-demo port-forward svc/postgres 5432:5432 &
-PGPASSWORD=dbproxy psql -h localhost -U dbproxy demo
-demo=> SET ROLE alice; SELECT * FROM documents;   -- alice's view
-demo=> RESET ROLE; SET ROLE bob; SELECT * FROM documents;  -- bob's view
-```
+→ Hands-on: [`follow-along/02-postgres-rls.md`](follow-along/02-postgres-rls.md)
 
-### 3. Grafana: OIDC code flow direct to Keycloak
+### 3. Grafana via OIDC code flow
 
-Grafana speaks OIDC natively, so Envoy is **not** in this path — putting an HTTP JWT-bearer filter in front of an OAuth code-flow would just break the redirects. Instead Grafana is configured with `auth.generic_oauth` pointing at Keycloak's `grafana` realm client.
-
-URL split (because some calls are made by the user's browser and some by the Grafana pod itself):
+Standard OAuth2 authorization code grant. The interesting wrinkle is the URL split — *whose* network namespace makes each call:
 
 | setting | URL | who hits it |
 |---|---|---|
-| `auth_url` | `http://localhost:8180/...` | browser (port-forwarded) |
-| `token_url` | `http://keycloak:8180/...` | Grafana pod (in-cluster DNS) |
-| `api_url` | `http://keycloak:8180/...` | Grafana pod (in-cluster DNS) |
+| `auth_url` | `http://localhost:8180/...` | the user's **browser** (port-forwarded) |
+| `token_url` | `http://keycloak:8180/...` | the **Grafana pod** (in-cluster DNS) |
+| `api_url` | `http://keycloak:8180/...` | the **Grafana pod** (in-cluster DNS) |
 
-`KC_HOSTNAME_URL=http://localhost:8180` on the Keycloak deployment pins the issued `iss` claim deterministically regardless of which network path delivers a token-endpoint call. `KC_HOSTNAME_STRICT_BACKCHANNEL=false` allows the in-cluster URLs on the back channel.
+`KC_HOSTNAME_URL=http://localhost:8180` on the Keycloak deployment pins the JWT `iss` claim deterministically regardless of network path; `KC_HOSTNAME_STRICT_BACKCHANNEL=false` permits the in-cluster URLs on the back channel.
 
-Role mapping is a JMESPath expression:
+Role mapping is a JMESPath:
 
 ```ini
 role_attribute_path = contains(realm_access.roles[*], 'admin') && 'Admin' || 'Viewer'
 ```
 
-So:
-- alice (realm roles: `[user]`) → Grafana **Viewer**
-- bob (realm roles: `[user, admin]`) → Grafana **Admin**
+So `alice` (realm roles `[user]`) → Grafana **Viewer**; `bob` (realm roles `[user, admin]`) → Grafana **Admin**.
 
-To use it: open `http://localhost:3300/login`, click *Sign in with Keycloak*, log in as `alice/password` or `bob/password`. First login auto-provisions the user inside Grafana.
+→ Hands-on: [`follow-along/03-grafana-oidc.md`](follow-along/03-grafana-oidc.md)
 
-### 4. SSH: short-lived certs signed from JWT
+### 4. SSH via short-lived CA-signed certs
 
-The pattern: turn an authenticated JWT into a **15-minute SSH user certificate** whose principal is the JWT's `preferred_username`. sshd is configured to trust the demo CA, but only honors certs whose principal matches a per-unix-user file.
+Layered enforcement — failures at any one of these stops the chain:
 
-Components:
-- `ssh-ca` HTTP service (behind Envoy, same `x-jwt-payload` pattern as db-app). On `POST /ssh-ca/sign`, it shells out to `ssh-keygen -s ca -I <id> -n <preferred_username> -V +15m <user_pubkey>`.
-- `sshd` pod (Ubuntu 22.04). `sshd_config` has `TrustedUserCAKeys /etc/ssh/ca.pub`, `AuthorizedPrincipalsFile /etc/ssh/auth_principals/%u`, and `AuthorizedKeysFile none` so the only path in is via a CA-signed cert with the right principal. Each unix user (`alice`, `bob`) has only their own name in their principals file — alice's cert can never be used as bob.
-
-End-user flow:
-
-```bash
-# 1. Local SSH keypair (do once; reuse forever).
-ssh-keygen -t ed25519 -f ~/.ssh/keycloak_id -N ""
-
-# 2. Get a Keycloak token, exchange for a 15-min SSH cert.
-TOKEN=$(curl -s -X POST http://localhost:8180/realms/demo/protocol/openid-connect/token \
-  -d "client_id=demo-client&grant_type=password&username=alice&password=password" | jq -r .access_token)
-
-curl -sf -X POST -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: text/plain" --data-binary @$HOME/.ssh/keycloak_id.pub \
-  http://localhost:8080/ssh-ca/sign > $HOME/.ssh/keycloak_id-cert.pub
-
-# 3. SSH in (the ssh client picks up *-cert.pub next to the key automatically).
-ssh -i ~/.ssh/keycloak_id -p 2222 alice@localhost
-```
-
-Layered enforcement:
 1. **Envoy** rejects `/ssh-ca/sign` without a valid Keycloak JWT (401).
-2. **ssh-ca** ignores any user-supplied identity — `Principals` is set strictly from `preferred_username`. The CA private key is mounted read-only via a Secret with `defaultMode: 0440 + fsGroup:1001` so the unprivileged signer process can read it.
-3. **sshd** verifies the cert was signed by the trusted CA *and* that the principal is in the target user's `auth_principals` file.
-4. **15-min validity** — short enough that revocation infra isn't worth building.
+2. **`ssh-ca`** ignores any user-supplied identity. The cert's `Principals=` field is set strictly from the JWT's `preferred_username`. The CA private key is mounted read-only via Secret with `defaultMode: 0440` + `fsGroup: 1001`.
+3. **sshd** verifies the cert was signed by the trusted CA *and* that the principal is in the per-unix-user `auth_principals` file. `AuthorizedKeysFile=none` means there's no fallback to plain key auth.
+4. **15-minute validity** makes revocation infrastructure unnecessary — a stolen cert is worthless quickly.
+
+→ Hands-on: [`follow-along/04-ssh-certs.md`](follow-along/04-ssh-certs.md)
 
 ## Access control matrix
 
@@ -214,24 +185,15 @@ Layered enforcement:
 - `alice` / `password` — realm roles `[user]`
 - `bob`   / `password` — realm roles `[user, admin]`
 
-Two confidential clients: `demo-client` (used by curl + apps) and `grafana` (the Grafana OIDC client).
+Two clients: `demo-client` (used by curl + apps) and `grafana` (the Grafana OIDC client).
 
-## End-to-end test (run after `kubectl apply -f k8s/`)
-
-There's no committed test runner yet, but the full matrix below is what gets exercised on every clean rebuild — 25 assertions across the four suites, all expected to pass. Drop this into a script if you want to wire it into CI:
-
-- HTTP authz: anon→401 except `/health`; alice can `/public`/`/alice` but `/bob`→403; bob mirror-image. (10 cases)
-- DB RLS: alice's `/db` returns `{owner: alice, public}` rows only; bob → `{bob, public}`; anon→401. (3 cases)
-- Grafana OIDC: full curl-driven code flow (visit `/login/generic_oauth`, scrape login form action, POST creds, follow redirects, hit `/api/user/orgs`); alice→Viewer, bob→Admin. (2 cases)
-- SSH: alice signs and ssh's as alice; alice's cert refused for bob; bob mirror; anon→401 from ssh-ca; naked key (no cert)→denied. (10 cases)
-
-## Threat model & security notes
+## Threat model
 
 | Attack | Protected? | How |
 |---|---|---|
 | No authentication | ✅ | Envoy JWT filter / Grafana OIDC start / sshd cert-only |
 | Expired/forged JWT | ✅ | Signature verified against JWKS; `exp` checked |
-| Cross-user HTTP access (alice → /bob) | ✅ | RBAC denies (403) |
+| Cross-user HTTP access (alice → /bob) | ✅ | Envoy RBAC denies (403) |
 | Cross-user DB rows (alice tx reads bob rows) | ✅ | Postgres RLS, enforced by DB regardless of app bugs |
 | Cross-user SSH (alice's cert as `ssh bob@host`) | ✅ | sshd principals file mismatch |
 | Compromised db-app process forging identity | ✅ | dbproxy is `NOINHERIT`, so process has no privileges until it `SET ROLE`s — and the JWT was already validated by Envoy upstream |
@@ -240,33 +202,25 @@ There's no committed test runner yet, but the full matrix below is what gets exe
 | Network sniffing | ❌ | Demo is HTTP-only. Production: TLS at Envoy + sshd already encrypted |
 | Direct backend access bypassing Envoy | ✅ in-cluster | Apps only have ClusterIP; nothing exposed without `port-forward` |
 
-Production hardening is roughly the same checklist as the original demo — TLS, refresh tokens, rate limiting, log aggregation, JWKS rotation, replace public-client password grant with a confidential client + auth-code-with-PKCE for browser apps, etc.
-
-## Cleanup
-
-```bash
-kubectl delete namespace ams-demo
-```
+Production hardening from here: TLS termination at Envoy, refresh-token flow instead of password grant, rate limiting per user, log aggregation, JWKS rotation, replace public-client password grant with confidential client + auth-code-with-PKCE for browser apps.
 
 ## Layout
 
 ```
 public-app/  alice-app/  bob-app/         HTTP services (ports 3000/3002/3001)
-db-app/                                   Postgres bridge (reads JWT, SET ROLE, queries)
-ssh-ca-app/                               SSH cert authority (HTTP, signs from JWT)
+db-app/                                   Postgres bridge — reads JWT, SET ROLE, queries
+ssh-ca-app/                               SSH cert authority — HTTP, signs from JWT
 sshd-app/                                 Ubuntu SSH server pod
-keycloak/realm-export.json                Keycloak realm with users + clients
+keycloak/realm-export.json                Keycloak realm: users, clients, role mappings
 
 k8s/                                      Kubernetes manifests, applied with kubectl apply -f k8s/
   00-namespace.yaml ... 73-sshd.yaml      ordered to make read-through obvious
-  config-src/                             non-manifest sources (envoy.yaml, init.sql, ssh-ca keys)
-                                          regenerate ConfigMaps if you edit these:
-                                            kubectl create configmap ... --from-file=... \
-                                              --dry-run=client -o yaml > k8s/30-envoy-config.yaml
+  config-src/                             non-manifest sources (envoy.yaml, init.sql) used to
+                                          regenerate ConfigMaps when edited
 
-demo-script.sh                            interactive paused walkthrough (k8s; pause/Enter on each step)
-tests/test-demo.sh                        full assertion suite (k8s)
 follow-along/                             workshop modules — one self-contained file per backend
+demo-script.sh                            interactive paused walkthrough (color-coded)
+tests/test-demo.sh                        full assertion suite (25 cases across 4 suites)
 .github/workflows/mirror-images.yml       mirrors upstream images into GHCR
 docs/                                     conceptual deep dives (proxy, OAuth/OIDC, JWTs, logging)
 ```
