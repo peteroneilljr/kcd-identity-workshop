@@ -15,8 +15,18 @@ The user authenticates to Keycloak once. From there, the same identity controls:
 
 ## Architecture
 
-> **Interactive diagram:** <https://excalidraw.com/#json=pjDOtFjDtfWI-hbNb8iZP,YSvnd00orqDOI4D4jMHGhQ>
-> Source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) (open in [excalidraw.com](https://excalidraw.com), the [Excalidraw VS Code extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor), or any tool that reads `.excalidraw` JSON to edit).
+![Identity-Aware Access architecture: Keycloak as the identity provider; users reach Envoy with a Bearer JWT, Grafana via OIDC code flow, and sshd with a CA-signed cert; behind Envoy are public/alice/bob HTTP apps plus db-app (which SET ROLEs into Postgres with row-level security) and ssh-ca (which signs SSH certs whose principal is the JWT username, trusted by sshd's CA pubkey).](docs/architecture.png)
+
+<!--
+  docs/architecture.png is the rendered export of docs/architecture.excalidraw.
+  To regenerate after editing the source:
+    1. Open https://excalidraw.com/#json=pjDOtFjDtfWI-hbNb8iZP,YSvnd00orqDOI4D4jMHGhQ
+       (or import docs/architecture.excalidraw)
+    2. File → Export image → PNG, "with background", scale 2x
+    3. Save as docs/architecture.png
+-->
+
+> **Edit the diagram:** [`docs/architecture.excalidraw`](docs/architecture.excalidraw) is the source. Open it in [excalidraw.com](https://excalidraw.com), the [Excalidraw VS Code extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor), or any tool that reads `.excalidraw` JSON. Live interactive copy is also at <https://excalidraw.com/#json=pjDOtFjDtfWI-hbNb8iZP,YSvnd00orqDOI4D4jMHGhQ>.
 
 ASCII fallback (also useful in terminals):
 
