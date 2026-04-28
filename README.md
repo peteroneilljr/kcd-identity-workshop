@@ -8,7 +8,8 @@ The user authenticates to Keycloak once. From there, the same identity controls:
 |---|---|---|
 | Grafana dashboard | OIDC code flow direct to Keycloak | Identity + role mapping (Admin/Viewer) |
 | HTTP services (`public`, `alice`, `bob`) | Envoy JWT validation + RBAC by `preferred_username` | Per-user, per-route HTTP authz |
-| Postgres database | JWT identity forwarded → app does `SET ROLE` → row-level security | Per-user row visibility (RLS) |
+| Postgres database (HTTP-fronted) | JWT identity forwarded → app does `SET ROLE` → row-level security | Per-user row visibility (RLS) |
+| Postgres database (interactive `psql`) | Short-lived client cert signed from JWT, native `cert` auth → row-level security | Per-user row visibility, no HTTP intermediary |
 | Ubuntu SSH | Short-lived SSH cert signed from JWT, principals = JWT username | Per-user shell access |
 
 > **Hands-on workshop modules** live in [`follow-along/`](follow-along/) — one self-contained file per backend, each runnable in ~5 minutes. This README is a tour of *what* and *why*; that directory is the *how*.
@@ -232,6 +233,7 @@ docker/                                   container build contexts (one folder p
   public-app/  alice-app/  bob-app/       HTTP services (ports 3000/3002/3001)
   db-app/                                 Postgres bridge — reads JWT, SET ROLE, queries
   ssh-ca-app/                             SSH cert authority — HTTP, signs from JWT
+  pg-ca-app/                              Postgres client-cert authority — HTTP, signs from JWT
   sshd-app/                               Ubuntu SSH server pod
   postgres-app/                           postgres:16-bookworm + pgaudit (locally built)
 
@@ -239,12 +241,13 @@ k8s/                                      Kubernetes manifests, applied with kub
   00-namespace.yaml ... 82-grafana-...    ordered to make read-through obvious
   config-src/                             editable sources baked into ConfigMaps:
     envoy.yaml                              → 30-envoy-config.yaml
+    pg_hba.conf                             → 40-postgres-hba-cm.yaml
     postgres-init.sql                       → 40-postgres-init-cm.yaml
     realm-export.json                       → 11-keycloak-realm-cm.yaml (Keycloak realm)
 
 follow-along/                             workshop modules — one self-contained file per backend
 demo-script.sh                            interactive paused walkthrough (color-coded)
-tests/test-demo.sh                        full assertion suite (25 cases across 4 suites)
+tests/test-demo.sh                        full assertion suite (33 cases across 5 suites)
 .github/workflows/mirror-images.yml       mirrors upstream images into GHCR
 docs/                                     conceptual deep dives (proxy, OAuth/OIDC, JWTs, logging)
 docs/architecture.excalidraw              editable source of the architecture diagram above

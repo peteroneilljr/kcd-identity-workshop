@@ -17,7 +17,7 @@ Get the cluster running so the rest of the workshop has something to talk to.
 
 ## 1. Build the local app images
 
-The 6 demo-* images are built from this repo. Docker Desktop's k8s shares the docker daemon's image cache automatically; on plain `kind`, follow each build with `kind load docker-image <tag>`.
+The 8 demo-* images are built from this repo. Docker Desktop's k8s shares the docker daemon's image cache automatically; on plain `kind`, follow each build with `kind load docker-image <tag>`.
 
 ```bash
 docker build -t demo-public-app:k8s   ./docker/public-app
@@ -25,6 +25,7 @@ docker build -t demo-alice-app:k8s    ./docker/alice-app
 docker build -t demo-bob-app:k8s      ./docker/bob-app
 docker build -t demo-db-app:k8s       ./docker/db-app
 docker build -t demo-ssh-ca-app:k8s   ./docker/ssh-ca-app
+docker build -t demo-pg-ca-app:k8s    ./docker/pg-ca-app      # signs PG client certs from JWT
 docker build -t demo-sshd:k8s         ./docker/sshd-app
 docker build -t demo-postgres:k8s     ./docker/postgres-app   # postgres + pgaudit
 ```
@@ -37,7 +38,12 @@ The 6 third-party base images that the cluster pulls at apply-time (alpine, graf
 kubectl apply -f k8s/
 ```
 
-The SSH CA keypair is auto-generated on first apply by a one-shot bootstrap Job (`k8s/05-ssh-ca-bootstrap.yaml`). The Job creates `Secret/ssh-ca-key` and `ConfigMap/ssh-ca-pub`, which `ssh-ca` and `sshd` Deployments mount. No manual `ssh-keygen` needed.
+Two CA keypairs are auto-generated on first apply by one-shot bootstrap Jobs:
+
+- `k8s/05-ssh-ca-bootstrap.yaml` → `Secret/ssh-ca-key` + `ConfigMap/ssh-ca-pub` (consumed by `ssh-ca` and `sshd`).
+- `k8s/06-pg-ca-bootstrap.yaml` → `Secret/pg-ca-key` + `ConfigMap/pg-ca-cert` + `Secret/postgres-tls` (consumed by `pg-ca` for signing, by `postgres` as the trust anchor for client certs and its own server cert).
+
+Both Jobs are idempotent — re-applies are no-ops once the secrets exist. No manual `ssh-keygen` or `openssl` needed.
 
 ## 3. Wait for everything Ready
 
@@ -46,7 +52,7 @@ kubectl -n ams-demo wait --for=condition=Available --timeout=240s deploy --all
 kubectl -n ams-demo get pods,job
 ```
 
-Expect 10 pods Running + bootstrap Job Complete:
+Expect 12 deployment pods Running + 2 promtail pods (DaemonSet, one per node) + 2 bootstrap Jobs Complete:
 
 ```
 NAME                          READY   STATUS      RESTARTS   AGE
@@ -56,13 +62,18 @@ pod/db-app-...                1/1     Running     0          ...
 pod/envoy-...                 1/1     Running     0          ...
 pod/grafana-...               1/1     Running     0          ...
 pod/keycloak-...              1/1     Running     0          ...
+pod/loki-...                  1/1     Running     0          ...
+pod/pg-ca-...                 1/1     Running     0          ...
+pod/pg-ca-bootstrap-...       0/1     Completed   0          ...
 pod/postgres-...              1/1     Running     0          ...
+pod/promtail-...              1/1     Running     0          ...
 pod/public-app-...            1/1     Running     0          ...
 pod/ssh-ca-...                1/1     Running     0          ...
 pod/ssh-ca-bootstrap-...      0/1     Completed   0          ...
 pod/sshd-...                  1/1     Running     0          ...
 
 NAME                         STATUS     COMPLETIONS   DURATION
+job.batch/pg-ca-bootstrap    Complete   1/1           ...
 job.batch/ssh-ca-bootstrap   Complete   1/1           ...
 ```
 

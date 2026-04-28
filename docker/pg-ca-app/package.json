@@ -1,0 +1,13 @@
+{
+  "name": "pg-ca-app",
+  "version": "1.0.0",
+  "description": "Postgres CA bridge — signs short-lived client certs from a Keycloak JWT identity",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "node-forge": "^1.3.1"
+  }
+}

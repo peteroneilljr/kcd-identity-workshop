@@ -4,10 +4,16 @@
 -- gets logged with classification (AUDIT: SESSION,1,1,READ,SELECT,...).
 CREATE EXTENSION IF NOT EXISTS pgaudit;
 
--- Roles for each Keycloak identity. NOLOGIN: they're assumed via SET ROLE
--- by the dbproxy connection, not connected to directly.
-CREATE ROLE alice NOLOGIN;
-CREATE ROLE bob   NOLOGIN;
+-- Roles for each Keycloak identity. LOGIN so the cert-auth path
+-- (psql with a CA-signed cert, see 03b-postgres-direct-psql.md) can
+-- connect *as* alice/bob. They have no password — pg_hba.conf accepts
+-- them only via the `cert` method, which requires a client cert
+-- whose CN equals the requested user.
+--
+-- The HTTP-fronted db-app flow (module 03) still works: dbproxy holds
+-- GRANT alice/bob, connects as itself, then SET LOCAL ROLE alice.
+CREATE ROLE alice LOGIN;
+CREATE ROLE bob   LOGIN;
 
 -- Login role used by db-app to connect. Holds membership in alice/bob so
 -- it can SET ROLE to either, but inherits no privileges itself (NOINHERIT).

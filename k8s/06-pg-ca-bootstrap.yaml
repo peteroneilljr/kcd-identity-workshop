@@ -1,0 +1,97 @@
+# Auto-generates the Postgres CA + server cert on first apply, then
+# materializes them as Secret/pg-ca-key (CA private), ConfigMap/pg-ca-cert
+# (CA cert), and Secret/postgres-tls (server cert+key). Idempotent: re-applies
+# are no-ops once the secrets exist. Mirror of 05-ssh-ca-bootstrap.yaml — same
+# bootstrap-on-apply pattern, different protocol.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pg-ca-bootstrap
+  namespace: ams-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pg-ca-bootstrap
+  namespace: ams-demo
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pg-ca-bootstrap
+  namespace: ams-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pg-ca-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: pg-ca-bootstrap
+    namespace: ams-demo
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-ca-bootstrap
+  namespace: ams-demo
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    spec:
+      serviceAccountName: pg-ca-bootstrap
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/alpine:3.20
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              echo "installing openssl + kubectl..."
+              apk add --no-cache openssl kubectl >/dev/null
+
+              if kubectl get secret pg-ca-key -n ams-demo >/dev/null 2>&1 \
+                 && kubectl get configmap pg-ca-cert -n ams-demo >/dev/null 2>&1 \
+                 && kubectl get secret postgres-tls -n ams-demo >/dev/null 2>&1; then
+                echo "pg-ca-key + pg-ca-cert + postgres-tls already exist; nothing to do"
+                exit 0
+              fi
+
+              cd /tmp
+              echo "generating Postgres CA..."
+              openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -sha256 \
+                -keyout ca.key -out ca.crt \
+                -subj "/CN=demo-pg-ca" 2>/dev/null
+
+              echo "generating Postgres server cert (CN=postgres, SAN: postgres,localhost)..."
+              # Server keypair + CSR. SAN covers in-cluster DNS (postgres) and
+              # the port-forward endpoint (localhost / 127.0.0.1) so users can
+              # connect from their laptop with sslmode=verify-full.
+              openssl req -new -newkey rsa:2048 -nodes -sha256 \
+                -keyout server.key -out server.csr \
+                -subj "/CN=postgres" \
+                -addext "subjectAltName=DNS:postgres,DNS:postgres.ams-demo.svc.cluster.local,DNS:localhost,IP:127.0.0.1" \
+                2>/dev/null
+
+              # Sign server cert with CA. Need the SAN copied into the cert,
+              # which requires an extfile (openssl x509 -req drops req exts
+              # by default).
+              cat > server.ext <<'EOF'
+              subjectAltName=DNS:postgres,DNS:postgres.ams-demo.svc.cluster.local,DNS:localhost,IP:127.0.0.1
+              extendedKeyUsage=serverAuth
+              EOF
+
+              openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key \
+                -CAcreateserial -out server.crt -days 825 -sha256 \
+                -extfile server.ext 2>/dev/null
+
+              echo "publishing as Secrets/ConfigMap..."
+              kubectl create secret    generic pg-ca-key    --from-file=ca.key=ca.key                            -n ams-demo
+              kubectl create configmap pg-ca-cert           --from-file=ca.crt=ca.crt                            -n ams-demo
+              kubectl create secret    generic postgres-tls --from-file=server.crt=server.crt --from-file=server.key=server.key -n ams-demo
+              echo "done"

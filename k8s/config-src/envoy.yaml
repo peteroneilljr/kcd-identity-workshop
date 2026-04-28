@@ -53,6 +53,15 @@ static_resources:
                 route:
                   cluster: ssh_ca_cluster
                   prefix_rewrite: "/"
+              # Route for pg-ca: same pattern as ssh-ca but for Postgres
+              # client certs. The signed cert's CN = JWT preferred_username;
+              # Postgres' `cert` auth then requires user==CN at connection
+              # time. Trailing slash → strip prefix → /sign on the upstream.
+              - match:
+                  prefix: "/pg-ca/"
+                route:
+                  cluster: pg_ca_cluster
+                  prefix_rewrite: "/"
               # Health check endpoint (no auth required)
               - match:
                   prefix: "/health"
@@ -118,6 +127,10 @@ static_resources:
                             name: ":path"
                             string_match:
                               prefix: "/ssh-ca"
+                        - header:
+                            name: ":path"
+                            string_match:
+                              prefix: "/pg-ca"
                     principals:
                     - any: true
 
@@ -266,6 +279,21 @@ static_resources:
               socket_address:
                 address: ssh-ca
                 port_value: 3004
+
+  # pg-ca cluster
+  - name: pg_ca_cluster
+    connect_timeout: 5s
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: pg_ca_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: pg-ca
+                port_value: 3005
 
 # Admin interface (optional, for debugging)
 admin:

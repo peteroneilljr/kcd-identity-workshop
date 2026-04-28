@@ -4,7 +4,7 @@ So far you've used a Keycloak identity in two systems that *understood* it nativ
 
 Postgres can't validate JWTs. So `db-app` does the bridge: it reads the JWT identity Envoy forwards (as `x-jwt-payload`), runs `SET LOCAL ROLE "<username>"` inside a transaction, and queries. Postgres' row-level security filters per `current_user`. The DB itself enforces who-sees-what — even a buggy `db-app` couldn't leak rows. This pattern (HTTP gateway validates JWT → small bridge service translates to a protocol-native credential → resource enforces with its own auth model) generalizes to a lot of non-JWT systems.
 
-[← back to index](README.md) · prev: [02-http-authz.md](02-http-authz.md) · next: [04-ssh-certs.md](04-ssh-certs.md)
+[← back to index](README.md) · prev: [02-http-authz.md](02-http-authz.md) · next: [03b-postgres-direct-psql.md](03b-postgres-direct-psql.md)
 
 ## Prerequisite
 
@@ -92,4 +92,4 @@ This is the same architectural pattern as Envoy's RBAC, just at a different laye
 
 ---
 
-→ Next: [**04-ssh-certs.md**](04-ssh-certs.md) — same JWT, this time bridged into SSH cert auth (a non-HTTP protocol).
+→ Next: [**03b-postgres-direct-psql.md**](03b-postgres-direct-psql.md) — same backend, this time reached via interactive psql with an OIDC-signed client cert (no `db-app` in the path).

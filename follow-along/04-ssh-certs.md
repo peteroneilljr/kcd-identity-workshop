@@ -4,7 +4,7 @@ Shell access is gated by an **SSH user certificate** signed at runtime by an in-
 
 This pattern is what tools like Teleport and HashiCorp Vault's SSH secrets engine do under the hood. Doing it yourself in ~50 lines of node + a few k8s manifests demystifies a lot.
 
-[← back to index](README.md) · prev: [03-postgres-rls.md](03-postgres-rls.md) · next: [05-audit-trail.md](05-audit-trail.md)
+[← back to index](README.md) · prev: [03b-postgres-direct-psql.md](03b-postgres-direct-psql.md) · next: [05-audit-trail.md](05-audit-trail.md)
 
 ## Prerequisite
 

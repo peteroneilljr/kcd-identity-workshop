@@ -23,7 +23,7 @@ assert_eq() {
 }
 
 # ---------- preflight ----------
-for tool in kubectl curl jq python3 ssh ssh-keygen nc; do
+for tool in kubectl curl jq python3 ssh ssh-keygen nc psql openssl; do
   command -v "$tool" >/dev/null 2>&1 || { echo "${RED}missing required tool: $tool${NC}"; exit 2; }
 done
 
@@ -57,10 +57,11 @@ start_pf keycloak 8180 8180
 start_pf envoy    8080 8080
 start_pf grafana  3300 3000
 start_pf sshd     2222 22
+start_pf postgres 5432 5432
 
 # Wait for forwards to come up. nc is more deterministic than sleep.
 echo "${BLUE}Waiting for port-forwards...${NC}"
-for port in 8180 8080 3300 2222; do
+for port in 8180 8080 3300 2222 5432; do
   for i in $(seq 1 30); do
     nc -z -w1 localhost "$port" >/dev/null 2>&1 && break
     sleep 0.5
@@ -194,6 +195,88 @@ out=$(ssh -i "$WORK/alice_id" -o IdentitiesOnly=yes \
        -p 2222 alice@localhost whoami 2>&1)
 if echo "$out" | grep -q "Permission denied"; then pass "naked key (no cert) refused"
 else fail "naked key (no cert) refused (got: $out)"; fi
+
+# ---------- Suite 5: pg-ca direct psql ----------
+echo
+echo "${YELLOW}[Suite 5: Postgres direct psql — pg-ca cert + RLS]${NC}"
+
+# Pull the CA cert for sslrootcert.
+kubectl -n "$NS" get cm pg-ca-cert -o jsonpath='{.data.ca\.crt}' > "$WORK/pg-ca.crt"
+[ -s "$WORK/pg-ca.crt" ] && pass "fetched pg-ca CA cert" || fail "pg-ca CA cert empty"
+
+# Generate per-user keypairs + CSRs, sign via /pg-ca/sign with each JWT.
+pg_sign() {
+  local user="$1" token="$2"
+  openssl req -new -newkey rsa:2048 -nodes -sha256 \
+    -keyout "$WORK/${user}_db.key" -out "$WORK/${user}_db.csr" \
+    -subj "/CN=${user}" 2>/dev/null
+  chmod 600 "$WORK/${user}_db.key"
+  curl -sf -X POST -H "Authorization: Bearer $token" \
+    -H "Content-Type: text/plain" --data-binary @"$WORK/${user}_db.csr" \
+    http://localhost:8080/pg-ca/sign \
+    > "$WORK/${user}_db.crt"
+}
+pg_sign alice "$TOKEN_ALICE"
+pg_sign bob   "$TOKEN_BOB"
+[ -s "$WORK/alice_db.crt" ] && pass "alice cert signed by pg-ca" || fail "alice pg cert empty"
+[ -s "$WORK/bob_db.crt"   ] && pass "bob   cert signed by pg-ca" || fail "bob pg cert empty"
+
+# kubectl port-forward into a TLS-enabled Postgres can drop after a single
+# connection on Docker Desktop. Refresh the forward before each psql call so
+# the suite is robust to that.
+restart_pg_pf() {
+  pkill -f "port-forward.*postgres" 2>/dev/null
+  sleep 1
+  kubectl -n "$NS" port-forward svc/postgres 5432:5432 >/dev/null 2>&1 &
+  PF_PIDS+=("$!"); disown "$!" 2>/dev/null || true
+  for i in $(seq 1 20); do
+    nc -z -w1 localhost 5432 >/dev/null 2>&1 && return 0
+    sleep 0.3
+  done
+  return 1
+}
+
+# psql owners as a given (cert,user) — empty string on connection failure.
+pg_owners() {
+  local cert="$1" key="$2" user="$3"
+  restart_pg_pf
+  PGSSLCERT="$cert" PGSSLKEY="$key" PGSSLROOTCERT="$WORK/pg-ca.crt" \
+    psql "host=localhost port=5432 dbname=demo user=$user sslmode=verify-ca" \
+      -tAc "SELECT string_agg(DISTINCT owner, ',' ORDER BY owner) FROM documents" 2>/dev/null
+}
+assert_eq "alice cert -> psql alice: sees {alice,public}" "alice,public" \
+  "$(pg_owners "$WORK/alice_db.crt" "$WORK/alice_db.key" alice)"
+assert_eq "bob   cert -> psql bob:   sees {bob,public}"   "bob,public"   \
+  "$(pg_owners "$WORK/bob_db.crt"   "$WORK/bob_db.key"   bob)"
+
+# Cross-user attempt: alice's cert connecting as user=bob must fail.
+restart_pg_pf
+out=$(PGSSLCERT="$WORK/alice_db.crt" PGSSLKEY="$WORK/alice_db.key" PGSSLROOTCERT="$WORK/pg-ca.crt" \
+      psql "host=localhost port=5432 dbname=demo user=bob sslmode=verify-ca" -tAc "SELECT 1" 2>&1)
+if echo "$out" | grep -q "certificate authentication failed"; then
+  pass "alice cert -> psql bob (cross-user) rejected"
+else
+  fail "alice cert -> psql bob expected cert auth fail (got: $out)"
+fi
+
+# Cert must include extKeyUsage:clientAuth and CN matching the JWT user even
+# when the CSR claims a different CN (server-side substitution).
+openssl req -new -newkey rsa:2048 -nodes -sha256 \
+  -keyout "$WORK/sneaky.key" -out "$WORK/sneaky.csr" \
+  -subj "/CN=bob" 2>/dev/null
+chmod 600 "$WORK/sneaky.key"
+curl -sf -X POST -H "Authorization: Bearer $TOKEN_ALICE" \
+  -H "Content-Type: text/plain" --data-binary @"$WORK/sneaky.csr" \
+  http://localhost:8080/pg-ca/sign > "$WORK/sneaky.crt"
+sneaky_cn=$(openssl x509 -in "$WORK/sneaky.crt" -noout -subject 2>/dev/null \
+            | sed -E 's/.*CN ?= ?([^,]+).*/\1/' | tr -d ' ')
+assert_eq "pg-ca rewrites CSR CN -> JWT user" "alice" "$sneaky_cn"
+
+# anon /pg-ca/sign blocked at gateway.
+assert_eq "anon /pg-ca/sign blocked" 401 \
+  "$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+       -H "Content-Type: text/plain" --data-binary @"$WORK/alice_db.csr" \
+       http://localhost:8080/pg-ca/sign)"
 
 # ---------- summary ----------
 echo

@@ -42,11 +42,17 @@ spec:
       labels:
         app: postgres
     spec:
+      # fsGroup: 999 (postgres user in the official image) so the mounted
+      # Secret/ConfigMap volumes are group-readable by postgres. Required
+      # because Postgres refuses to start if ssl_key_file's perms are wider
+      # than 0640.
+      securityContext:
+        fsGroup: 999
       containers:
         - name: postgres
           image: demo-postgres:k8s
           imagePullPolicy: IfNotPresent
-          # Logging and audit settings:
+          # Logging, audit, and TLS settings:
           #   shared_preload_libraries=pgaudit  — load the pgaudit lib at startup
           #     so the CREATE EXTENSION pgaudit in init.sql can attach hooks.
           #   pgaudit.log=read,write,role,ddl   — emit AUDIT lines for each
@@ -58,6 +64,12 @@ spec:
           #     statement" — coarser than pgaudit but useful for comparison.
           #   log_line_prefix                    — prepend timestamp + role +
           #     pid so log lines parse cleanly in Loki.
+          #   ssl=on + ssl_*_file               — enable TLS, present the
+          #     server cert that pg-ca-bootstrap signed, verify client certs
+          #     against the same CA. With pg_hba.conf's `cert` rule this gives
+          #     us OIDC-derived client cert auth for psql.
+          #   hba_file                           — point to the mounted
+          #     pg_hba.conf instead of the default in PGDATA.
           args:
             - "postgres"
             - "-c"
@@ -70,6 +82,16 @@ spec:
             - "log_statement=all"
             - "-c"
             - "log_line_prefix=%m [%p] %q%u@%d "
+            - "-c"
+            - "ssl=on"
+            - "-c"
+            - "ssl_cert_file=/etc/postgres-tls/server.crt"
+            - "-c"
+            - "ssl_key_file=/etc/postgres-tls/server.key"
+            - "-c"
+            - "ssl_ca_file=/etc/postgres-ca/ca.crt"
+            - "-c"
+            - "hba_file=/etc/postgres-hba/pg_hba.conf"
           env:
             - name: POSTGRES_DB
               value: demo
@@ -94,6 +116,15 @@ spec:
             - name: init-sql
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
+            - name: tls
+              mountPath: /etc/postgres-tls
+              readOnly: true
+            - name: ca
+              mountPath: /etc/postgres-ca
+              readOnly: true
+            - name: hba
+              mountPath: /etc/postgres-hba
+              readOnly: true
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "postgres", "-d", "demo"]
@@ -110,3 +141,15 @@ spec:
         - name: init-sql
           configMap:
             name: postgres-init
+        - name: tls
+          secret:
+            secretName: postgres-tls
+            # 0640 = owner rw, fsGroup r, others none. Postgres refuses to
+            # start with anything looser on ssl_key_file (decimal 416).
+            defaultMode: 416
+        - name: ca
+          configMap:
+            name: pg-ca-cert
+        - name: hba
+          configMap:
+            name: postgres-config

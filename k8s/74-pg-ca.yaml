@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-ca
+  namespace: ams-demo
+spec:
+  selector:
+    app: pg-ca
+  ports:
+    - name: http
+      port: 3005
+      targetPort: 3005
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pg-ca
+  namespace: ams-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pg-ca
+  template:
+    metadata:
+      labels:
+        app: pg-ca
+    spec:
+      # Container runs as nodejs (1001). fsGroup so the mounted CA secret
+      # is group-readable; defaultMode 0440 below pairs with this.
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: pg-ca
+          image: demo-pg-ca-app:k8s
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SERVICE_NAME
+              value: pg-ca
+            - name: PORT
+              value: "3005"
+            - name: PG_CA_KEY
+              value: /etc/pg-ca/ca.key
+            - name: PG_CA_CERT
+              value: /etc/pg-ca-cert/ca.crt
+            - name: CERT_VALIDITY_MIN
+              value: "15"
+          ports:
+            - containerPort: 3005
+          volumeMounts:
+            - name: ca-key
+              mountPath: /etc/pg-ca
+              readOnly: true
+            - name: ca-cert
+              mountPath: /etc/pg-ca-cert
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3005
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3005
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: ca-key
+          secret:
+            secretName: pg-ca-key
+            # 0440 = owner + fsGroup read, no other (decimal 288).
+            defaultMode: 288
+        - name: ca-cert
+          configMap:
+            name: pg-ca-cert

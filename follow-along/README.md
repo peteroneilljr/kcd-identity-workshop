@@ -21,6 +21,7 @@ The first pass is sequenced deliberately — OIDC first, because it's the founda
 | [01-grafana-oidc.md](01-grafana-oidc.md) | OIDC code flow with Grafana — the foundation everything else uses | ~5 min |
 | [02-http-authz.md](02-http-authz.md) | The same identity as a bearer JWT, validated at an API gateway | ~5 min |
 | [03-postgres-rls.md](03-postgres-rls.md) | Bridging that JWT into Postgres via SET ROLE + row-level security | ~5 min |
+| [03b-postgres-direct-psql.md](03b-postgres-direct-psql.md) | Same Postgres, interactive `psql` session — JWT signs a short-lived client cert, PG enforces with native `cert` auth | ~5 min |
 | [04-ssh-certs.md](04-ssh-certs.md) | Bridging the JWT into SSH via short-lived CA-signed certs | ~5 min |
 | [05-audit-trail.md](05-audit-trail.md) | Per-request access log keyed on verified identity (`kubectl logs \| jq`) | ~5 min |
 | [06-grafana-audit.md](06-grafana-audit.md) | Same audit log, surfaced in Grafana via Loki + LogQL | ~5 min |
@@ -32,6 +33,7 @@ The first pass is sequenced deliberately — OIDC first, because it's the founda
 - A running Kubernetes cluster (Docker Desktop's k8s, kind, minikube, …)
 - `kubectl`, `docker` (to build the local app images)
 - `curl`, `jq`, `python3`, `ssh`, `ssh-keygen`, `nc` for the client-side flows
+- `psql` and `openssl` for the Postgres direct-psql module (03b)
 
 ## Convention used in these files
 
