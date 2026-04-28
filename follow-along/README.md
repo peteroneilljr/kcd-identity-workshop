@@ -8,8 +8,8 @@ The four enforcement points exercised here:
 | -- | ------------- | --------------------------------------------------------------------- |
 | 1  | Grafana       | Native OIDC code flow against Keycloak; JMESPath role mapping         |
 | 2  | HTTP apps     | Envoy `jwt_authn` + `rbac` filter on `preferred_username`             |
-| 3  | Postgres      | `SET ROLE <jwt-username>` inside a tx + RLS on `current_user`         |
-| 4  | SSH           | 15-min cert signed with `principal = JWT username`                    |
+| 3  | SSH           | 15-min cert signed with `principal = JWT username`                    |
+| 4  | Postgres      | `SET ROLE <jwt-username>` inside a tx + RLS on `current_user`         |
 
 ## Order
 
@@ -33,7 +33,7 @@ The first pass is sequenced deliberately — OIDC first, because it's the founda
 - A running Kubernetes cluster (Docker Desktop's k8s, kind, minikube, …)
 - `kubectl`, `docker` (to build the local app images)
 - `curl`, `jq`, `python3`, `ssh`, `ssh-keygen`, `nc` for the client-side flows
-- `psql` and `openssl` for the Postgres direct-psql module (03b)
+- `psql` and `openssl` for the Postgres direct-psql module (04b)
 
 ## Convention used in these files
 
