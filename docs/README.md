@@ -58,4 +58,4 @@ Explains how Envoy's dynamic metadata system enables identity-aware logging, cre
 ## Related Files
 
 - [Main README](../README.md) - Quick start and architecture overview
-- [Follow-Along Guide](../FOLLOW-ALONG.md) - Step-by-step demo instructions
+- [Follow-Along Workshop](../follow-along/README.md) - Step-by-step modules, one per backend

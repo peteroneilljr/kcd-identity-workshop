@@ -266,7 +266,7 @@ k8s/                                      Kubernetes manifests, applied with kub
 
 demo-script.sh                            interactive paused walkthrough (k8s; pause/Enter on each step)
 tests/test-demo.sh                        full assertion suite (k8s)
-FOLLOW-ALONG.md                           copy-paste-ready step-by-step guide
+follow-along/                             workshop modules — one self-contained file per backend
 .github/workflows/mirror-images.yml       mirrors upstream images into GHCR
 docs/                                     conceptual deep dives (proxy, OAuth/OIDC, JWTs, logging)
 ```
