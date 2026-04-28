@@ -228,7 +228,7 @@ Tradeoff: users have to re-sign frequently. For interactive sessions this is inv
 
 ## The signing service: `ssh-ca` in this demo
 
-`ssh-ca-app/server.js` is ~80 lines of Node. The signing path:
+`docker/ssh-ca-app/server.js` is ~80 lines of Node. The signing path:
 
 ```js
 app.post('/sign', async (req, res) => {

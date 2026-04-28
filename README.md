@@ -228,11 +228,12 @@ Production hardening from here: TLS termination at Envoy, refresh-token flow ins
 ## Layout
 
 ```
-public-app/  alice-app/  bob-app/         HTTP services (ports 3000/3002/3001)
-db-app/                                   Postgres bridge — reads JWT, SET ROLE, queries
-ssh-ca-app/                               SSH cert authority — HTTP, signs from JWT
-sshd-app/                                 Ubuntu SSH server pod
-postgres-app/                             postgres:16-bookworm + pgaudit (locally built)
+docker/                                   container build contexts (one folder per image)
+  public-app/  alice-app/  bob-app/       HTTP services (ports 3000/3002/3001)
+  db-app/                                 Postgres bridge — reads JWT, SET ROLE, queries
+  ssh-ca-app/                             SSH cert authority — HTTP, signs from JWT
+  sshd-app/                               Ubuntu SSH server pod
+  postgres-app/                           postgres:16-bookworm + pgaudit (locally built)
 keycloak/realm-export.json                Keycloak realm: users, clients, role mappings
 
 k8s/                                      Kubernetes manifests, applied with kubectl apply -f k8s/
