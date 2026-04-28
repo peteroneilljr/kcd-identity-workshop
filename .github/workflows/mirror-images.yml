@@ -50,6 +50,12 @@ jobs:
           - upstream: "quay.io/keycloak/keycloak:23.0"
             name: "keycloak"
             tag: "23.0"
+          - upstream: "grafana/loki:3.2.0"
+            name: "loki"
+            tag: "3.2.0"
+          - upstream: "grafana/promtail:3.2.0"
+            name: "promtail"
+            tag: "3.2.0"
 
     steps:
       - name: Set up Docker Buildx
