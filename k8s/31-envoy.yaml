@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
         - name: envoy
-          image: envoyproxy/envoy:v1.28-latest
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/envoy:v1.28-latest
           args:
             - "-c"
             - "/etc/envoy/envoy.yaml"

@@ -30,6 +30,12 @@ docker build -t demo-sshd:k8s         ./sshd-app
 #    by a one-shot bootstrap Job (k8s/05-ssh-ca-bootstrap.yaml) — no
 #    manual ssh-keygen step required. Re-applies are no-ops if the Secret
 #    already exists.
+#
+#    The 5 third-party base images (keycloak, envoy, postgres, grafana,
+#    alpine) are pulled from `ghcr.io/peteroneilljr/kcd-identity-workshop/*`
+#    rather than Docker Hub / Quay, to avoid hitting anonymous-pull rate
+#    limits during the workshop. They're mirrored automatically by
+#    .github/workflows/mirror-images.yml.
 kubectl apply -f k8s/
 
 # 3. Wait for ready (≈30s on a warm cluster, longer on first pull).
@@ -261,6 +267,7 @@ k8s/                                      Kubernetes manifests, applied with kub
 demo-script.sh                            interactive paused walkthrough (k8s; pause/Enter on each step)
 tests/test-demo.sh                        full assertion suite (k8s)
 FOLLOW-ALONG.md                           copy-paste-ready step-by-step guide
+.github/workflows/mirror-images.yml       mirrors upstream images into GHCR
 docs/                                     conceptual deep dives (proxy, OAuth/OIDC, JWTs, logging)
 ```
 

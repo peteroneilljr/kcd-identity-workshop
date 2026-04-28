@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:23.0
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/keycloak:23.0
           args: ["start-dev", "--import-realm"]
           env:
             - name: KEYCLOAK_ADMIN

@@ -44,7 +44,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/postgres:16-alpine
           env:
             - name: POSTGRES_DB
               value: demo
