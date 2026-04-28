@@ -1,12 +1,12 @@
-# 03b — Postgres direct: interactive psql via OIDC-signed client cert
+# 04b — Postgres direct: interactive psql via OIDC-signed client cert
 
-In [03](03-postgres-rls.md) you reached Postgres through `db-app`: HTTP request → JWT validated by Envoy → bridge service runs `SET LOCAL ROLE` → SQL fires under the assumed identity. That's the right pattern when an *application* needs row-level access. But what about a *human* who wants an interactive `psql` session?
+In [04](04-postgres-rls.md) you reached Postgres through `db-app`: HTTP request → JWT validated by Envoy → bridge service runs `SET LOCAL ROLE` → SQL fires under the assumed identity. That's the right pattern when an *application* needs row-level access. But what about a *human* who wants an interactive `psql` session?
 
 This module is the same identity story in a second shape: a `pg-ca` service signs a short-lived **PostgreSQL client certificate** from the user's JWT, and Postgres validates that cert at connection time using its native `cert` auth method. The shell session you get is a normal `psql` — `\d`, multi-line queries, transactions, prepared statements — except `current_user` is your Keycloak identity, and Row-Level Security still filters rows the same way it does for `db-app`.
 
-The pattern: **federated identity at the edge → short-lived protocol-native credential at the resource**. You already saw it for SSH in module 04 (which you'll get to next). Postgres is the third protocol. The bridge service is ~100 lines of Node.
+The pattern: **federated identity at the edge → short-lived protocol-native credential at the resource**. You already saw it for SSH in module 03. Postgres is the third protocol. The bridge service is ~100 lines of Node.
 
-[← back to index](README.md) · prev: [03-postgres-rls.md](03-postgres-rls.md) · next: [04-ssh-certs.md](04-ssh-certs.md)
+[← back to index](README.md) · prev: [04-postgres-rls.md](04-postgres-rls.md) · next: [05-audit-trail.md](05-audit-trail.md)
 
 ## Prerequisite
 
@@ -114,7 +114,7 @@ Three things working together:
 
 - **Postgres' `cert` auth** validated the cert chain (`ca.crt` was the trust anchor) and enforced that the cert's CN equals the requested DB user (`user=alice`).
 - **`session_user = alice`** — you connected directly as alice, no `SET ROLE`. There's no dbproxy in this path.
-- **RLS** — same `documents_owner_or_public` policy from module 03. `current_user` is `alice` so you see alice's rows + public; bob's rows are invisible.
+- **RLS** — same `documents_owner_or_public` policy from module 04. `current_user` is `alice` so you see alice's rows + public; bob's rows are invisible.
 
 Try the things you can't do via the HTTP path:
 
@@ -276,7 +276,7 @@ The CA keypair is generated on `kubectl apply -f k8s/` by the bootstrap Job in `
 
 You've now seen Postgres reached via **two** identity-aware paths:
 
-| | Module 03 (`db-app` SET ROLE) | This module (`pg-ca` cert) |
+| | Module 04 (`db-app` SET ROLE) | This module (`pg-ca` cert) |
 |---|---|---|
 | Use case | An *application* serving HTTP needs identity-scoped DB access | A *human* wants an interactive psql session |
 | Where identity is enforced | Postgres `current_user`, set by db-app's `SET LOCAL ROLE` | Postgres `cert` auth, no SET ROLE — connects directly as alice |
@@ -288,10 +288,10 @@ Both paths share `documents_owner_or_public` RLS as the **last line of enforceme
 
 Three observations to carry forward:
 
-1. **The same federation pattern shows up at every layer.** `ssh-ca` (module 04) and `pg-ca` (this one) are mechanically identical: a small bridge, a JWT validation, a short-lived signed credential, native protocol-level enforcement at the resource.
+1. **The same federation pattern shows up at every layer.** `ssh-ca` (module 03) and `pg-ca` (this one) are mechanically identical: a small bridge, a JWT validation, a short-lived signed credential, native protocol-level enforcement at the resource.
 2. **Postgres' `cert` auth is the analog of sshd's `AuthorizedPrincipalsFile`.** Both are file-based, declarative, "this CN/principal can be this user" mappings — both refuse to authenticate when the cert/principal doesn't match the requested identity, regardless of how valid the signing chain is.
 3. **You don't have to invent an OIDC plugin for every system.** Postgres has zero understanding of JWTs and never will. But it has rich native auth (cert, scram-sha-256, ldap, gss, peer, …). Your bridge converts JWT → whichever native credential the resource speaks. Same as Vault SSH, AWS RDS IAM, Boundary, Teleport DB Access.
 
 ---
 
-→ Next: [**04-ssh-certs.md**](04-ssh-certs.md) — the same pattern again, this time bridging JWT into SSH cert auth. By now the shape will feel familiar.
+→ Next: [**05-audit-trail.md**](05-audit-trail.md) — see all of the above (HTTP RBAC, SSH cert sign, db-app SET ROLE, pg-ca cert sign) show up in the per-request audit log, with verified identity and authorization decision attached.

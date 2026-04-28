@@ -8,12 +8,12 @@ data:
     CREATE EXTENSION IF NOT EXISTS pgaudit;
 
     -- Roles for each Keycloak identity. LOGIN so the cert-auth path
-    -- (psql with a CA-signed cert, see 03b-postgres-direct-psql.md) can
+    -- (psql with a CA-signed cert, see 04b-postgres-direct-psql.md) can
     -- connect *as* alice/bob. They have no password — pg_hba.conf accepts
     -- them only via the `cert` method, which requires a client cert
     -- whose CN equals the requested user.
     --
-    -- The HTTP-fronted db-app flow (module 03) still works: dbproxy holds
+    -- The HTTP-fronted db-app flow (module 04) still works: dbproxy holds
     -- GRANT alice/bob, connects as itself, then SET LOCAL ROLE alice.
     CREATE ROLE alice LOGIN;
     CREATE ROLE bob   LOGIN;

@@ -163,9 +163,20 @@ Bob has the `admin` realm role, but it doesn't unlock alice's app — RBAC check
 
 → Hands-on: [`follow-along/02-http-authz.md`](follow-along/02-http-authz.md)
 
-### 3. Database via SET ROLE + RLS
+### 3. SSH via short-lived CA-signed certs
 
-Same JWT, different enforcement layer — and the first **bridge** in the workshop (a system that can't speak JWT at all):
+The first **bridge** in the workshop — same JWT, this time turned into a credential a non-HTTP protocol understands. The cleanest example of the federation pattern: bridge service signs a short-lived credential, resource enforces with its own native auth. Layered enforcement, failures at any one of these stops the chain:
+
+1. **Envoy** rejects `/ssh-ca/sign` without a valid Keycloak JWT (401).
+2. **`ssh-ca`** ignores any user-supplied identity. The cert's `Principals=` field is set strictly from the JWT's `preferred_username`. The CA private key is mounted read-only via Secret with `defaultMode: 0440` + `fsGroup: 1001`.
+3. **sshd** verifies the cert was signed by the trusted CA *and* that the principal is in the per-unix-user `auth_principals` file. `AuthorizedKeysFile=none` means there's no fallback to plain key auth.
+4. **15-minute validity** makes revocation infrastructure unnecessary — a stolen cert is worthless quickly.
+
+→ Hands-on: [`follow-along/03-ssh-certs.md`](follow-along/03-ssh-certs.md)
+
+### 4. Database via SET ROLE + RLS
+
+Same JWT, different enforcement layer — and a different bridging strategy from the SSH cert above. Instead of signing a credential, `db-app` does in-line translation: it reads the verified JWT and maps it to a Postgres role inside a transaction:
 
 ```
 client ──Bearer JWT──► Envoy ──verify──► forward x-jwt-payload ──► db-app
@@ -181,18 +192,9 @@ client ──Bearer JWT──► Envoy ──verify──► forward x-jwt-paylo
 
 The DB itself is the authority on who-sees-what. Even if `db-app` had a bug or got compromised, the worst case is running as `dbproxy`, which has no privileges of its own — only what it inherits via `SET ROLE`. RLS is enforced regardless of application correctness.
 
-→ Hands-on: [`follow-along/03-postgres-rls.md`](follow-along/03-postgres-rls.md)
+The interactive-`psql` flow ([`follow-along/04b-postgres-direct-psql.md`](follow-along/04b-postgres-direct-psql.md)) reaches the same database with the *cert-signing* pattern instead — `pg-ca` signs a short-lived PG client cert from the JWT, mirroring `ssh-ca` exactly.
 
-### 4. SSH via short-lived CA-signed certs
-
-The second bridge — same JWT, this time turned into a credential a non-HTTP protocol understands. Layered enforcement, failures at any one of these stops the chain:
-
-1. **Envoy** rejects `/ssh-ca/sign` without a valid Keycloak JWT (401).
-2. **`ssh-ca`** ignores any user-supplied identity. The cert's `Principals=` field is set strictly from the JWT's `preferred_username`. The CA private key is mounted read-only via Secret with `defaultMode: 0440` + `fsGroup: 1001`.
-3. **sshd** verifies the cert was signed by the trusted CA *and* that the principal is in the per-unix-user `auth_principals` file. `AuthorizedKeysFile=none` means there's no fallback to plain key auth.
-4. **15-minute validity** makes revocation infrastructure unnecessary — a stolen cert is worthless quickly.
-
-→ Hands-on: [`follow-along/04-ssh-certs.md`](follow-along/04-ssh-certs.md)
+→ Hands-on: [`follow-along/04-postgres-rls.md`](follow-along/04-postgres-rls.md)
 
 ## Access control matrix
 

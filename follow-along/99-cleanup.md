@@ -73,7 +73,7 @@ Your cert may have expired. Check the validity window:
 ssh-keygen -L -f ~/.ssh/keycloak_id-cert.pub | grep Valid
 ```
 
-If `to` is in the past, re-sign with a fresh token. (See [04-ssh-certs.md](04-ssh-certs.md).)
+If `to` is in the past, re-sign with a fresh token. (See [03-ssh-certs.md](03-ssh-certs.md).)
 
 ### Pod stuck in `ImagePullBackOff` for any image
 

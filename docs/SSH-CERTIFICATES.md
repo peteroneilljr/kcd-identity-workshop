@@ -395,4 +395,4 @@ For multiple teams sharing a CA: include team in the principal name (`team-platf
 - [HashiCorp Vault SSH Secrets Engine](https://developer.hashicorp.com/vault/docs/secrets/ssh) — production-grade implementation of this pattern
 - [Teleport SSH](https://goteleport.com/docs/connect-your-client/tsh/) — same pattern, full product around it
 - [smallstep step-ssh](https://smallstep.com/docs/step-ssh) — minimalist CA tooling
-- Workshop module: [`follow-along/04-ssh-certs.md`](../follow-along/04-ssh-certs.md) — hands-on commands
+- Workshop module: [`follow-along/03-ssh-certs.md`](../follow-along/03-ssh-certs.md) — hands-on commands

@@ -4,7 +4,7 @@ In [01](01-grafana-oidc.md) you logged into Grafana via the browser and watched 
 
 This module pulls the curtain back. We'll fetch a Keycloak access token directly with curl, decode it to see what's inside, and present it as a bearer credential to a different system: an API gateway (Envoy) sitting in front of three HTTP services (`/public`, `/alice`, `/bob`). Envoy validates the JWT on every request and applies an RBAC policy that keys on `preferred_username`. Backends never see anonymous traffic.
 
-[← back to index](README.md) · prev: [01-grafana-oidc.md](01-grafana-oidc.md) · next: [03-postgres-rls.md](03-postgres-rls.md)
+[← back to index](README.md) · prev: [01-grafana-oidc.md](01-grafana-oidc.md) · next: [03-ssh-certs.md](03-ssh-certs.md)
 
 ## Prerequisite
 
@@ -105,8 +105,8 @@ There's no `admin` clause anywhere. Roles aren't the trust unit here — usernam
 
 ## Why this matters
 
-Envoy is the choke point for a fleet of backend services that don't have to know anything about authentication. They just receive HTTP requests pre-authorized by Envoy, plus a `x-jwt-payload` header containing the verified claims if they want to *use* the identity (which is what `db-app` and `ssh-ca` do — covered in the next two parts).
+Envoy is the choke point for a fleet of backend services that don't have to know anything about authentication. They just receive HTTP requests pre-authorized by Envoy, plus a `x-jwt-payload` header containing the verified claims if they want to *use* the identity (which is what `db-app`, `ssh-ca`, and `pg-ca` do — covered in the next modules).
 
 ---
 
-→ Next: [**03-postgres-rls.md**](03-postgres-rls.md) — same JWT identity, different enforcement layer (Postgres RLS).
+→ Next: [**03-ssh-certs.md**](03-ssh-certs.md) — same JWT identity, different enforcement layer: a short-lived SSH cert signed from the JWT, validated by sshd's native cert auth.

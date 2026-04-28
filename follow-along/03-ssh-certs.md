@@ -1,10 +1,10 @@
-# 04 — SSH: short-lived certs signed from a JWT
+# 03 — SSH: short-lived certs signed from a JWT
 
 Shell access is gated by an **SSH user certificate** signed at runtime by an in-cluster CA. The pattern: HTTP `POST /ssh-ca/sign` your SSH public key with a Keycloak token; get back a 15-minute SSH cert whose `Principal` is your JWT username; `ssh -i key host` works because sshd trusts the CA's pubkey.
 
 This pattern is what tools like Teleport and HashiCorp Vault's SSH secrets engine do under the hood. Doing it yourself in ~50 lines of node + a few k8s manifests demystifies a lot.
 
-[← back to index](README.md) · prev: [03b-postgres-direct-psql.md](03b-postgres-direct-psql.md) · next: [05-audit-trail.md](05-audit-trail.md)
+[← back to index](README.md) · prev: [02-http-authz.md](02-http-authz.md) · next: [04-postgres-rls.md](04-postgres-rls.md)
 
 ## Prerequisite
 
@@ -116,4 +116,4 @@ This is roughly how Teleport's `tsh ssh` works under the hood. The mental model 
 
 ---
 
-→ Next: [**05-audit-trail.md**](05-audit-trail.md) — see all of the above show up in the per-request audit log, with verified identity and authorization decision attached.
+→ Next: [**04-postgres-rls.md**](04-postgres-rls.md) — same federated identity, this time bridged into Postgres. Two flavours: an HTTP-fronted `db-app` that translates JWT → `SET ROLE` (this module), and an interactive `psql` session that uses a short-lived client cert (next module — same federation pattern as the SSH cert you just signed).

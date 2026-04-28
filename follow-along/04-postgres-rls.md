@@ -1,10 +1,10 @@
-# 03 — Postgres: SET ROLE + RLS keyed on Keycloak identity
+# 04 — Postgres: SET ROLE + RLS keyed on Keycloak identity
 
-So far you've used a Keycloak identity in two systems that *understood* it natively — Grafana via OIDC, Envoy via JWT bearer auth. This module is the first **bridge**: a system that can't speak JWT at all.
+In the previous module, `ssh-ca` bridged the JWT into SSH by signing a short-lived cert. This module shows a different bridging strategy for a system that also can't speak JWT: instead of signing a credential, `db-app` does **in-line translation** of the JWT into a Postgres role.
 
 Postgres can't validate JWTs. So `db-app` does the bridge: it reads the JWT identity Envoy forwards (as `x-jwt-payload`), runs `SET LOCAL ROLE "<username>"` inside a transaction, and queries. Postgres' row-level security filters per `current_user`. The DB itself enforces who-sees-what — even a buggy `db-app` couldn't leak rows. This pattern (HTTP gateway validates JWT → small bridge service translates to a protocol-native credential → resource enforces with its own auth model) generalizes to a lot of non-JWT systems.
 
-[← back to index](README.md) · prev: [02-http-authz.md](02-http-authz.md) · next: [03b-postgres-direct-psql.md](03b-postgres-direct-psql.md)
+[← back to index](README.md) · prev: [03-ssh-certs.md](03-ssh-certs.md) · next: [04b-postgres-direct-psql.md](04b-postgres-direct-psql.md)
 
 ## Prerequisite
 
@@ -59,31 +59,6 @@ CREATE POLICY documents_owner_or_public ON documents
 
 `current_user` reflects whichever role we just `SET ROLE`d into. `SET LOCAL` is reset at end-of-tx, so role can't leak across pooled connections. The login user is `dbproxy` (`NOINHERIT` — has no privileges of its own), and it has `GRANT alice TO dbproxy` and `GRANT bob TO dbproxy` so it can switch into either.
 
-## Optional: interactive psql
-
-Want to poke at the same DB directly? Run an extra port-forward and connect as `dbproxy`:
-
-```bash
-kubectl -n ams-demo port-forward svc/postgres 5432:5432 &
-PGPASSWORD=dbproxy psql -h localhost -U dbproxy demo
-```
-
-Then inside psql:
-
-```sql
-SET ROLE alice;
-SELECT * FROM documents;     -- alice's view: alice rows + public
-
-RESET ROLE;
-SET ROLE bob;
-SELECT * FROM documents;     -- bob's view: bob rows + public
-
-RESET ROLE;
-SELECT * FROM documents;     -- dbproxy with no role: 0 rows, RLS blocks all
-```
-
-That last query confirms `dbproxy` has no privileges of its own — it's a pure switcher role.
-
 ## Why this matters
 
 The trust boundary is the **database**, not the application. If db-app had a bug — say it forgot to call `SET ROLE`, or got tricked into using a different identity — the worst it could do is run as `dbproxy` (which has no privileges). It cannot impersonate alice as bob, because the DB role is what's checked at row-level, and Envoy already validated which JWT was presented.
@@ -92,4 +67,4 @@ This is the same architectural pattern as Envoy's RBAC, just at a different laye
 
 ---
 
-→ Next: [**03b-postgres-direct-psql.md**](03b-postgres-direct-psql.md) — same backend, this time reached via interactive psql with an OIDC-signed client cert (no `db-app` in the path).
+→ Next: [**04b-postgres-direct-psql.md**](04b-postgres-direct-psql.md) — same backend, this time reached via interactive psql with an OIDC-signed client cert (no `db-app` in the path).

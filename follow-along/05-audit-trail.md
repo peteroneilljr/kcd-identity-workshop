@@ -2,7 +2,7 @@
 
 Identity threads through every layer. This module is where that pays off — every HTTP request through Envoy lands in a structured access log with the verified user identity and the authorization decision already attached. No application instrumentation needed; no parsing IPs out of network logs and trying to figure out who they belonged to. Just `kubectl logs` and you can answer "what did alice do today?" or "did anyone get denied trying to read /bob?" in one query.
 
-[← back to index](README.md) · prev: [04-ssh-certs.md](04-ssh-certs.md) · next: [06-grafana-audit.md](06-grafana-audit.md)
+[← back to index](README.md) · prev: [04b-postgres-direct-psql.md](04b-postgres-direct-psql.md) · next: [06-grafana-audit.md](06-grafana-audit.md)
 
 ## Prerequisite
 
