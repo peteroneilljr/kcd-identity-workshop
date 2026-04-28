@@ -44,7 +44,32 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: ghcr.io/peteroneilljr/kcd-identity-workshop/postgres:16-alpine
+          image: demo-postgres:k8s
+          imagePullPolicy: IfNotPresent
+          # Logging and audit settings:
+          #   shared_preload_libraries=pgaudit  — load the pgaudit lib at startup
+          #     so the CREATE EXTENSION pgaudit in init.sql can attach hooks.
+          #   pgaudit.log=read,write,role,ddl   — emit AUDIT lines for each
+          #     class of statement: SELECT/COPY (read), INSERT/UPDATE/DELETE
+          #     (write), GRANT/REVOKE/CREATE-ROLE (role), DDL (schema).
+          #   log_connections=on                 — record session-establishment
+          #     for every connection (visible login user = dbproxy).
+          #   log_statement=all                  — Postgres-native "log every
+          #     statement" — coarser than pgaudit but useful for comparison.
+          #   log_line_prefix                    — prepend timestamp + role +
+          #     pid so log lines parse cleanly in Loki.
+          args:
+            - "postgres"
+            - "-c"
+            - "shared_preload_libraries=pgaudit"
+            - "-c"
+            - "pgaudit.log=read,write,role,ddl"
+            - "-c"
+            - "log_connections=on"
+            - "-c"
+            - "log_statement=all"
+            - "-c"
+            - "log_line_prefix=%m [%p] %q%u@%d "
           env:
             - name: POSTGRES_DB
               value: demo

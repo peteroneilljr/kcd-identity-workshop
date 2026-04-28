@@ -136,11 +136,26 @@ Each request appears in the first terminal within milliseconds, with the verifie
 
 Envoy is the richest audit channel here, but not the only one. Each backend layer keeps its own log:
 
-- **Postgres** — `pg_stat_activity` shows the current role per connection. Login user is always `dbproxy`; the *acted-as* role is whatever `SET LOCAL ROLE` switched to. To audit "which Keycloak identity executed this query", db-app's own console output (`kubectl logs deploy/db-app`) records the request with the JWT user.
-- **sshd** — `kubectl logs deploy/sshd` shows the standard OpenSSH auth log: cert ID, principal, signing CA fingerprint, source IP. Every successful login looks like `Accepted publickey for alice from 10.244.x.x: ED25519-CERT SHA256:... ID alice-1714323456-... CA ED25519 SHA256:...`. The Key ID is your link back to which Keycloak token signed it.
-- **Grafana** — `kubectl logs deploy/grafana | grep oauth` shows OIDC login events, and Grafana's own audit log (under Server Admin → Settings) captures dashboard views per user.
+- **db-app & ssh-ca** — `kubectl logs deploy/db-app` and `kubectl logs deploy/ssh-ca` emit one line per request with the JWT identity attached:
+  ```
+  [2026-04-28T05:53:20.222Z] user=alice GET /
+  [2026-04-28T05:53:20.268Z] user=alice POST /sign
+  ```
+  Same alice as in the Envoy log; same alice as in the SSH cert that comes out the other side. Identity threads through.
 
-Same identity (`alice`, `bob`), four logs, four different perspectives. Stitching them together in a real SIEM is the production-y next step — but for this workshop the point is that each layer *has* the identity to log, because each layer enforced something with it.
+- **Postgres** — runs with `log_statement=all` + `pgaudit.log=read,write,role,ddl`, so `kubectl logs deploy/postgres` shows the SQL-layer audit trail:
+  ```
+  dbproxy@demo LOG:  statement: SET LOCAL ROLE "alice"
+  dbproxy@demo LOG:  statement: SELECT id, owner, title, body FROM documents ORDER BY id
+  dbproxy@demo LOG:  AUDIT: SESSION,12,1,READ,SELECT,,,"SELECT id, owner, title, body FROM documents ORDER BY id",<not logged>
+  ```
+  The login user (`dbproxy`) is always the same — that's the connection auth — but the `SET LOCAL ROLE "alice"` line *is* the identity assertion. pgaudit's `AUDIT: SESSION,...,READ,SELECT,...` lines classify by statement type so you can filter for "all writes" or "all role-altering statements" specifically.
+
+- **sshd** — `kubectl logs deploy/sshd` shows the standard OpenSSH auth log: cert ID, principal, signing CA fingerprint, source IP. Every successful login looks like `Accepted publickey for alice from 10.244.x.x: ED25519-CERT SHA256:... ID alice-1714323456-... CA ED25519 SHA256:...`. The Key ID is your link back to which Keycloak token signed it.
+
+- **Grafana** — `kubectl logs deploy/grafana` shows operational logs with `uname=alice` on every action — login, dashboard access, datasource queries.
+
+Same identity (`alice`, `bob`), five logs, five different perspectives. Stitching them together in a real SIEM is the production-y next step — but for this workshop the point is that each layer *has* the identity to log, because each layer enforced something with it.
 
 ## Why this matters
 

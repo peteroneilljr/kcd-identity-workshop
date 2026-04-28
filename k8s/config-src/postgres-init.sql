@@ -1,3 +1,9 @@
+-- Audit logging extension. shared_preload_libraries=pgaudit is set on the
+-- server (k8s/41-postgres.yaml -c args), so the lib is already loaded; this
+-- just attaches the hooks. After this, every read/write/role/ddl statement
+-- gets logged with classification (AUDIT: SESSION,1,1,READ,SELECT,...).
+CREATE EXTENSION IF NOT EXISTS pgaudit;
+
 -- Roles for each Keycloak identity. NOLOGIN: they're assumed via SET ROLE
 -- by the dbproxy connection, not connected to directly.
 CREATE ROLE alice NOLOGIN;

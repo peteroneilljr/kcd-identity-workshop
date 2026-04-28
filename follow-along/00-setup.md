@@ -26,9 +26,10 @@ docker build -t demo-bob-app:k8s      ./bob-app
 docker build -t demo-db-app:k8s       ./db-app
 docker build -t demo-ssh-ca-app:k8s   ./ssh-ca-app
 docker build -t demo-sshd:k8s         ./sshd-app
+docker build -t demo-postgres:k8s     ./postgres-app   # postgres + pgaudit
 ```
 
-The 5 third-party base images (alpine, postgres, grafana, envoy, keycloak) are *not* built locally — the cluster pulls them from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` (a workshop-friendly mirror that bypasses Docker Hub rate limits).
+The 6 third-party base images that the cluster pulls at apply-time (alpine, grafana, envoy, keycloak, loki, promtail) come from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` (a workshop-friendly mirror that bypasses Docker Hub rate limits). Postgres is built locally on top of `postgres:16-bookworm` because we add `pgaudit` for audit logging.
 
 ## 2. Apply the manifests
 

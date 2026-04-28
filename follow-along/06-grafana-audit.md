@@ -113,9 +113,23 @@ sum by (user) (count_over_time({namespace="ams-demo", app="envoy"} | json | __er
 Per-user request rate over time.
 
 ```logql
-{namespace="ams-demo", app=~"db-app|ssh-ca"}
+{namespace="ams-demo", app=~"db-app|ssh-ca"} |~ "user="
 ```
-The bridge services' application logs (these aren't structured JSON like Envoy, so no `| json`).
+The bridge services' application logs — every request is tagged with the JWT identity (`user=alice GET /` etc.), so you can correlate "alice hit /db" with the corresponding Envoy 200 and the Postgres SET ROLE that followed.
+
+```logql
+{namespace="ams-demo", app="postgres"} |~ "SET LOCAL ROLE"
+```
+Every role assumption inside `db-app`'s transactions, in chronological order. Pair this with the Envoy panel above to see "alice hit `/db`" → "db-app set role alice" → "Postgres ran SELECT" all in one timeline.
+
+```logql
+{namespace="ams-demo", app="postgres"} |~ "AUDIT:"
+```
+pgaudit's structured audit lines: `AUDIT: SESSION,12,1,READ,SELECT,...` with the statement type, class (READ/WRITE/ROLE/DDL), and the actual SQL. Filter to `WRITE` to get all mutations cluster-wide:
+
+```logql
+{namespace="ams-demo", app="postgres"} |~ "AUDIT: SESSION,.*,WRITE,"
+```
 
 ## Why this matters
 

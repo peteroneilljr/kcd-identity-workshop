@@ -23,20 +23,6 @@ pool.on('error', (err) => {
   console.error('Unexpected pg pool error:', err);
 });
 
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
-
-app.get('/health', async (req, res) => {
-  try {
-    await pool.query('SELECT 1');
-    res.json({ status: 'healthy', service: SERVICE_NAME, db: 'reachable' });
-  } catch (e) {
-    res.status(503).json({ status: 'unhealthy', service: SERVICE_NAME, error: e.message });
-  }
-});
-
 function jwtUsername(req) {
   const raw = req.headers['x-jwt-payload'];
   if (!raw) return null;
@@ -48,6 +34,23 @@ function jwtUsername(req) {
     return null;
   }
 }
+
+// Log every request with the JWT identity (if any) so Loki/Promtail
+// can ship structured per-user audit entries.
+app.use((req, res, next) => {
+  const user = jwtUsername(req) || 'anon';
+  console.log(`[${new Date().toISOString()}] user=${user} ${req.method} ${req.path}`);
+  next();
+});
+
+app.get('/health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'healthy', service: SERVICE_NAME, db: 'reachable' });
+  } catch (e) {
+    res.status(503).json({ status: 'unhealthy', service: SERVICE_NAME, error: e.message });
+  }
+});
 
 app.get('/', async (req, res) => {
   const user = jwtUsername(req);

@@ -19,17 +19,6 @@ const ALLOWED = new Set(['alice', 'bob']);
 // Accept the user's pubkey as a raw text body (mirrors `ssh-keygen` UX).
 app.use(express.text({ type: '*/*', limit: '8kb' }));
 
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
-
-app.get('/health', (_req, res) => {
-  // Don't leak existence/path of CA key — just report process health.
-  const ok = fssync.existsSync(CA_KEY_PATH);
-  res.status(ok ? 200 : 503).json({ status: ok ? 'healthy' : 'unhealthy', service: SERVICE_NAME });
-});
-
 function jwtUsername(req) {
   const raw = req.headers['x-jwt-payload'];
   if (!raw) return null;
@@ -40,6 +29,20 @@ function jwtUsername(req) {
     return null;
   }
 }
+
+// Log every request with the JWT identity (if any) so Loki/Promtail
+// can ship structured per-user audit entries.
+app.use((req, res, next) => {
+  const user = jwtUsername(req) || 'anon';
+  console.log(`[${new Date().toISOString()}] user=${user} ${req.method} ${req.path}`);
+  next();
+});
+
+app.get('/health', (_req, res) => {
+  // Don't leak existence/path of CA key — just report process health.
+  const ok = fssync.existsSync(CA_KEY_PATH);
+  res.status(ok ? 200 : 503).json({ status: ok ? 'healthy' : 'unhealthy', service: SERVICE_NAME });
+});
 
 // Single-line OpenSSH public key, e.g. "ssh-ed25519 AAAA... comment"
 const SSH_PUBKEY_RE =

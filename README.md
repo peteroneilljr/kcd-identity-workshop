@@ -111,7 +111,7 @@ This is the same architectural pattern as Teleport, Vault SSH secrets engine, or
 
 ### Image mirror workflow — registry-independence
 
-`.github/workflows/mirror-images.yml` mirrors the 7 third-party images this stack pulls (alpine, postgres, grafana, envoy, keycloak, loki, promtail) into GHCR using `docker buildx imagetools create` (preserves multi-arch manifests). The cluster pulls everything from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` instead of Docker Hub / Quay, so workshop attendees on shared conference Wi-Fi don't trip Docker Hub's anonymous pull rate limit.
+`.github/workflows/mirror-images.yml` mirrors the 6 third-party images the cluster pulls at apply-time (alpine, grafana, envoy, keycloak, loki, promtail) into GHCR using `docker buildx imagetools create` (preserves multi-arch manifests). The cluster pulls these from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` instead of Docker Hub / Quay, so workshop attendees on shared conference Wi-Fi don't trip Docker Hub's anonymous pull rate limit. (Postgres is locally-built on top of `postgres:16-bookworm` because we add the `pgaudit` extension; that base image is pulled at `docker build` time on the developer's machine, not by the cluster.)
 
 ## How identity flows through each backend
 
@@ -232,6 +232,7 @@ public-app/  alice-app/  bob-app/         HTTP services (ports 3000/3002/3001)
 db-app/                                   Postgres bridge — reads JWT, SET ROLE, queries
 ssh-ca-app/                               SSH cert authority — HTTP, signs from JWT
 sshd-app/                                 Ubuntu SSH server pod
+postgres-app/                             postgres:16-bookworm + pgaudit (locally built)
 keycloak/realm-export.json                Keycloak realm: users, clients, role mappings
 
 k8s/                                      Kubernetes manifests, applied with kubectl apply -f k8s/
