@@ -20,13 +20,13 @@ The user authenticates to Keycloak once. From there, the same identity controls:
 <!--
   docs/architecture.png is the rendered export of docs/architecture.excalidraw.
   To regenerate after editing the source:
-    1. Open https://excalidraw.com/#json=lyrGvXUZj4khoX_aGD8YR,5O-a6PbXZzVemPXzqnymZA
+    1. Open https://excalidraw.com/#json=bbwfex_7LwEewrH5OtHYI,L1jy0RjmtDQuEwW_x_xcVA
        (or import docs/architecture.excalidraw)
     2. File → Export image → PNG, "with background", scale 2x
     3. Save as docs/architecture.png
 -->
 
-> **Edit the diagram:** [`docs/architecture.excalidraw`](docs/architecture.excalidraw) is the source. Open it in [excalidraw.com](https://excalidraw.com), the [Excalidraw VS Code extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor), or any tool that reads `.excalidraw` JSON. Live interactive copy is also at <https://excalidraw.com/#json=lyrGvXUZj4khoX_aGD8YR,5O-a6PbXZzVemPXzqnymZA>.
+> **Edit the diagram:** [`docs/architecture.excalidraw`](docs/architecture.excalidraw) is the source. Open it in [excalidraw.com](https://excalidraw.com), the [Excalidraw VS Code extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor), or any tool that reads `.excalidraw` JSON. Live interactive copy is also at <https://excalidraw.com/#json=bbwfex_7LwEewrH5OtHYI,L1jy0RjmtDQuEwW_x_xcVA>.
 
 ASCII fallback (also useful in terminals):
 
