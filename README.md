@@ -1,4 +1,4 @@
-# Signed, Sealed, Delivered: Identity-Aware Access Demo
+# KCD Identity Workshop: One Keycloak Login, Four Backends
 
 This repo demonstrates **per-user identity-based access control** across four different backend technologies, all keyed off a single Keycloak identity. It's a study in *what each request* and *each session* can be gated on at the application/data/protocol layer — the inverse of VPN-style network-level trust.
 
