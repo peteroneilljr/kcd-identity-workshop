@@ -1,0 +1,50 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://github.com/peteroneilljr/kcd-identity-workshop",
+  "elements": [
+    {"type":"text","id":"title","x":210,"y":10,"text":"Identity-Aware Access: One Keycloak Login, Four Backends","fontSize":24,"strokeColor":"#1e1e1e"},
+
+    {"type":"ellipse","id":"user","x":80,"y":80,"width":120,"height":100,"backgroundColor":"#a5d8ff","fillStyle":"solid","strokeColor":"#4a9eed","strokeWidth":2,"label":{"text":"User\n(alice / bob)","fontSize":18}},
+
+    {"type":"rectangle","id":"kc","x":460,"y":80,"width":300,"height":100,"backgroundColor":"#fff3bf","fillStyle":"solid","strokeColor":"#f59e0b","strokeWidth":2,"roundness":{"type":3},"label":{"text":"Keycloak\nIdentity Provider","fontSize":20}},
+
+    {"type":"arrow","id":"a-login","x":200,"y":130,"width":260,"height":0,"points":[[0,0],[260,0]],"strokeColor":"#1e1e1e","strokeWidth":2,"endArrowhead":"arrow","label":{"text":"login -> JWT","fontSize":18}},
+
+    {"type":"rectangle","id":"envoy","x":60,"y":250,"width":280,"height":100,"backgroundColor":"#d0bfff","fillStyle":"solid","strokeColor":"#8b5cf6","strokeWidth":2,"roundness":{"type":3},"label":{"text":"Envoy gateway\njwt_authn + RBAC","fontSize":18}},
+
+    {"type":"rectangle","id":"grafana","x":420,"y":250,"width":240,"height":100,"backgroundColor":"#eebefa","fillStyle":"solid","strokeColor":"#ec4899","strokeWidth":2,"roundness":{"type":3},"label":{"text":"Grafana\nnative OIDC","fontSize":20}},
+
+    {"type":"rectangle","id":"sshd","x":740,"y":250,"width":260,"height":100,"backgroundColor":"#ffd8a8","fillStyle":"solid","strokeColor":"#f59e0b","strokeWidth":2,"roundness":{"type":3},"label":{"text":"sshd (Ubuntu pod)\ntrusts CA pubkey","fontSize":18}},
+
+    {"type":"arrow","id":"u2e","x":140,"y":180,"width":60,"height":70,"points":[[0,0],[60,70]],"strokeColor":"#4a9eed","strokeWidth":2,"endArrowhead":"arrow","label":{"text":"Bearer JWT","fontSize":16}},
+    {"type":"arrow","id":"u2g","x":200,"y":160,"width":340,"height":90,"points":[[0,0],[340,90]],"strokeColor":"#ec4899","strokeWidth":2,"endArrowhead":"arrow","label":{"text":"browser OIDC","fontSize":16}},
+    {"type":"arrow","id":"u2s","x":200,"y":150,"width":670,"height":100,"points":[[0,0],[670,100]],"strokeColor":"#f59e0b","strokeWidth":2,"endArrowhead":"arrow","label":{"text":"ssh w/ cert","fontSize":16}},
+
+    {"type":"arrow","id":"k2g","x":540,"y":180,"width":0,"height":70,"points":[[0,0],[0,70]],"strokeColor":"#ec4899","strokeWidth":1.5,"strokeStyle":"dashed","endArrowhead":"arrow","label":{"text":"code flow","fontSize":14}},
+    {"type":"arrow","id":"k2e","x":480,"y":180,"width":-280,"height":70,"points":[[0,0],[-280,70]],"strokeColor":"#8b5cf6","strokeWidth":1.5,"strokeStyle":"dashed","endArrowhead":"arrow","label":{"text":"JWKS","fontSize":14}},
+
+    {"type":"rectangle","id":"public","x":60,"y":410,"width":110,"height":60,"backgroundColor":"#b2f2bb","fillStyle":"solid","strokeColor":"#22c55e","strokeWidth":2,"roundness":{"type":3},"label":{"text":"public-app","fontSize":14}},
+    {"type":"rectangle","id":"alice","x":180,"y":410,"width":110,"height":60,"backgroundColor":"#b2f2bb","fillStyle":"solid","strokeColor":"#22c55e","strokeWidth":2,"roundness":{"type":3},"label":{"text":"alice-app","fontSize":14}},
+    {"type":"rectangle","id":"bob","x":300,"y":410,"width":110,"height":60,"backgroundColor":"#b2f2bb","fillStyle":"solid","strokeColor":"#22c55e","strokeWidth":2,"roundness":{"type":3},"label":{"text":"bob-app","fontSize":14}},
+
+    {"type":"rectangle","id":"dbapp","x":60,"y":500,"width":130,"height":70,"backgroundColor":"#b2f2bb","fillStyle":"solid","strokeColor":"#22c55e","strokeWidth":2,"roundness":{"type":3},"label":{"text":"db-app\n(SET ROLE)","fontSize":14}},
+    {"type":"rectangle","id":"pg","x":220,"y":500,"width":190,"height":70,"backgroundColor":"#c3fae8","fillStyle":"solid","strokeColor":"#06b6d4","strokeWidth":2,"roundness":{"type":3},"label":{"text":"Postgres\nRLS by current_user","fontSize":14}},
+    {"type":"arrow","id":"d2p","x":190,"y":535,"width":30,"height":0,"points":[[0,0],[30,0]],"strokeColor":"#06b6d4","strokeWidth":2,"endArrowhead":"arrow"},
+
+    {"type":"rectangle","id":"sshca","x":60,"y":600,"width":150,"height":70,"backgroundColor":"#b2f2bb","fillStyle":"solid","strokeColor":"#22c55e","strokeWidth":2,"roundness":{"type":3},"label":{"text":"ssh-ca\n(signs SSH certs)","fontSize":13}},
+
+    {"type":"arrow","id":"e2pub","x":115,"y":350,"width":0,"height":60,"points":[[0,0],[0,60]],"strokeColor":"#8b5cf6","strokeWidth":1.5,"endArrowhead":"arrow"},
+    {"type":"arrow","id":"e2a","x":200,"y":350,"width":35,"height":60,"points":[[0,0],[35,60]],"strokeColor":"#8b5cf6","strokeWidth":1.5,"endArrowhead":"arrow"},
+    {"type":"arrow","id":"e2b","x":200,"y":350,"width":155,"height":60,"points":[[0,0],[155,60]],"strokeColor":"#8b5cf6","strokeWidth":1.5,"endArrowhead":"arrow"},
+    {"type":"arrow","id":"e2d","x":115,"y":350,"width":10,"height":150,"points":[[0,0],[10,150]],"strokeColor":"#8b5cf6","strokeWidth":1.5,"endArrowhead":"arrow"},
+    {"type":"arrow","id":"e2c","x":115,"y":350,"width":20,"height":250,"points":[[0,0],[20,250]],"strokeColor":"#8b5cf6","strokeWidth":1.5,"endArrowhead":"arrow"},
+
+    {"type":"arrow","id":"c2s","x":215,"y":625,"width":620,"height":-275,"points":[[0,0],[620,-275]],"strokeColor":"#f59e0b","strokeWidth":1.5,"strokeStyle":"dashed","endArrowhead":"arrow","label":{"text":"CA pubkey (ConfigMap)","fontSize":13}}
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null
+  },
+  "files": {}
+}

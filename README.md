@@ -15,6 +15,11 @@ The user authenticates to Keycloak once. From there, the same identity controls:
 
 ## Architecture
 
+> **Interactive diagram:** <https://excalidraw.com/#json=pjDOtFjDtfWI-hbNb8iZP,YSvnd00orqDOI4D4jMHGhQ>
+> Source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) (open in [excalidraw.com](https://excalidraw.com), the [Excalidraw VS Code extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor), or any tool that reads `.excalidraw` JSON to edit).
+
+ASCII fallback (also useful in terminals):
+
 ```
                                 ┌──────────────────────┐
                                 │       Keycloak       │
@@ -225,6 +230,7 @@ demo-script.sh                            interactive paused walkthrough (color-
 tests/test-demo.sh                        full assertion suite (25 cases across 4 suites)
 .github/workflows/mirror-images.yml       mirrors upstream images into GHCR
 docs/                                     conceptual deep dives (proxy, OAuth/OIDC, JWTs, logging)
+docs/architecture.excalidraw              editable source of the architecture diagram above
 ```
 
 ## Further reading
