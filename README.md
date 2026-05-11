@@ -266,3 +266,6 @@ docs/architecture.excalidraw              editable source of the architecture di
 - [PostgreSQL Row-Level Security](https://www.postgresql.org/docs/16/ddl-rowsecurity.html)
 - [Grafana generic OAuth](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/generic-oauth/)
 - [OpenSSH certificate authentication](https://man.openbsd.org/ssh-keygen#CERTIFICATES)
+
+
+![QRCODE](./qrcode-workshop.png)
