@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -8 785 601" width="785" height="601" font-family="Virgil, Comic Sans MS, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+</defs>
+<rect x="20" y="-8" width="785" height="601" fill="#ffffff"/>
+<text x="400.0" y="30.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">SSH Certificates — JWT to Short-Lived Cert</text>
+<rect x="40" y="60" width="130" height="50" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="105.0" y="88.15" font-size="14" fill="#1e1e1e" text-anchor="middle">User</text>
+<rect x="220" y="60" width="130" height="50" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="285.0" y="88.15" font-size="14" fill="#1e1e1e" text-anchor="middle">Keycloak</text>
+<rect x="400" y="60" width="160" height="50" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
+<text x="480.0" y="87.925" font-size="13" fill="#1e1e1e" text-anchor="middle">ssh-ca (via Envoy)</text>
+<rect x="610" y="60" width="160" height="50" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="690.0" y="87.925" font-size="13" fill="#1e1e1e" text-anchor="middle">sshd (target host)</text>
+<path d="M 105 110 L 105 390" fill="none" stroke="#b0b0b0" stroke-width="1" stroke-dasharray="8 4" opacity="1.0"/>
+<path d="M 285 110 L 285 390" fill="none" stroke="#b0b0b0" stroke-width="1" stroke-dasharray="8 4" opacity="1.0"/>
+<path d="M 480 110 L 480 390" fill="none" stroke="#b0b0b0" stroke-width="1" stroke-dasharray="8 4" opacity="1.0"/>
+<path d="M 690 110 L 690 390" fill="none" stroke="#b0b0b0" stroke-width="1" stroke-dasharray="8 4" opacity="1.0"/>
+<path d="M 105 145 L 285 145" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="195.0" y="135.0" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">1. authenticate</text>
+<text x="195.0" y="135.0" font-size="13" fill="#4a9eed" text-anchor="middle">1. authenticate</text>
+<path d="M 285 185 L 105 185" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="195.0" y="175.0" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">2. JWT</text>
+<text x="195.0" y="175.0" font-size="13" fill="#f59e0b" text-anchor="middle">2. JWT</text>
+<path d="M 105 225 L 480 225" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="292.5" y="215.0" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">3. POST JWT + public key</text>
+<text x="292.5" y="215.0" font-size="13" fill="#4a9eed" text-anchor="middle">3. POST JWT + public key</text>
+<path d="M 480 265 L 105 265" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="292.5" y="255.0" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">4. signed cert (valid 15m)</text>
+<text x="292.5" y="255.0" font-size="13" fill="#8b5cf6" text-anchor="middle">4. signed cert (valid 15m)</text>
+<path d="M 105 315 L 690 315" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="397.5" y="305.0" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">5. ssh -i key alice@host  (cert presented)</text>
+<text x="397.5" y="305.0" font-size="13" fill="#22c55e" text-anchor="middle">5. ssh -i key alice@host  (cert presented)</text>
+<path d="M 690 365 L 105 365" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="397.5" y="355.0" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">6. shell granted</text>
+<text x="397.5" y="355.0" font-size="13" fill="#22c55e" text-anchor="middle">6. shell granted</text>
+<text x="180.0" y="432.75" font-size="15" fill="#15803d" text-anchor="middle" opacity="1.0">sshd verification checks</text>
+<rect x="40" y="450" width="175" height="80" rx="8" ry="8" fill="#d3f9d8" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="127.5" y="485.2" font-size="12" fill="#1e1e1e" text-anchor="middle">TrustedUserCAKeys</text>
+<text x="127.5" y="500.2" font-size="12" fill="#1e1e1e" text-anchor="middle">(CA signature)</text>
+<rect x="230" y="450" width="175" height="80" rx="8" ry="8" fill="#d3f9d8" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="317.5" y="485.2" font-size="12" fill="#1e1e1e" text-anchor="middle">AuthorizedPrincipalsFile</text>
+<text x="317.5" y="500.2" font-size="12" fill="#1e1e1e" text-anchor="middle">(alice)</text>
+<rect x="420" y="450" width="175" height="80" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="507.5" y="485.2" font-size="12" fill="#1e1e1e" text-anchor="middle">validity window</text>
+<text x="507.5" y="500.2" font-size="12" fill="#1e1e1e" text-anchor="middle">(&lt;= 15 min)</text>
+<rect x="610" y="450" width="175" height="80" rx="8" ry="8" fill="#ffc9c9" stroke="#ef4444" stroke-width="2" opacity="1.0"/>
+<text x="697.5" y="485.2" font-size="12" fill="#1e1e1e" text-anchor="middle">AuthorizedKeysFile</text>
+<text x="697.5" y="500.2" font-size="12" fill="#1e1e1e" text-anchor="middle">= none</text>
+<text x="410.0" y="565.2" font-size="12" fill="#ef4444" text-anchor="middle" opacity="1.0">No long-lived authorized_keys.  Principal = JWT user.  15-min expiry replaces revocation infra.</text>
+</svg>

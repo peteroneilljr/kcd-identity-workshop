@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 740 540" width="740" height="540" font-family="Virgil, Comic Sans MS, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+</defs>
+<rect x="20" y="-10" width="740" height="540" fill="#ffffff"/>
+<text x="420.0" y="28.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Access Logging — Identity via Dynamic Metadata</text>
+<rect x="40" y="260" width="110" height="60" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="95.0" y="284.4" font-size="14" fill="#1e1e1e" text-anchor="middle">Request +</text>
+<text x="95.0" y="301.9" font-size="14" fill="#1e1e1e" text-anchor="middle">JWT</text>
+<rect x="190" y="110" width="210" height="80" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="295.0" y="144.4" font-size="14" fill="#1e1e1e" text-anchor="middle">JWT Auth Filter</text>
+<text x="295.0" y="161.9" font-size="14" fill="#1e1e1e" text-anchor="middle">(extract claims)</text>
+<rect x="190" y="230" width="210" height="130" rx="8" ry="8" fill="#eebefa" stroke="#ec4899" stroke-width="2" opacity="1.0"/>
+<text x="295.0" y="281.675" font-size="13" fill="#1e1e1e" text-anchor="middle">Dynamic Metadata</text>
+<text x="295.0" y="297.925" font-size="13" fill="#1e1e1e" text-anchor="middle">{ jwt_payload:</text>
+<text x="295.0" y="314.175" font-size="13" fill="#1e1e1e" text-anchor="middle">   user, email, roles }</text>
+<rect x="450" y="110" width="210" height="80" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="555.0" y="144.4" font-size="14" fill="#1e1e1e" text-anchor="middle">RBAC Filter</text>
+<text x="555.0" y="161.9" font-size="14" fill="#1e1e1e" text-anchor="middle">(reads metadata)</text>
+<rect x="450" y="230" width="210" height="80" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
+<text x="555.0" y="264.8" font-size="13" fill="#1e1e1e" text-anchor="middle">Access Logger</text>
+<text x="555.0" y="281.05" font-size="13" fill="#1e1e1e" text-anchor="middle">%DYNAMIC_METADATA%</text>
+<rect x="450" y="350" width="290" height="160" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="595.0" y="416.675" font-size="13" fill="#1e1e1e" text-anchor="middle">JSON log</text>
+<text x="595.0" y="432.925" font-size="13" fill="#1e1e1e" text-anchor="middle">{ ts, user, path, method,</text>
+<text x="595.0" y="449.175" font-size="13" fill="#1e1e1e" text-anchor="middle">  status, roles, duration_ms }</text>
+<path d="M 150 290 L 190 150" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 295 190 L 295 230" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="285.0" y="210.0" font-size="12" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">store</text>
+<text x="285.0" y="210.0" font-size="12" fill="#f59e0b" text-anchor="middle">store</text>
+<path d="M 400 290 L 450 150" fill="none" stroke="#ec4899" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="415.58258088405165" y="216.63663603001845" font-size="12" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">read</text>
+<text x="415.58258088405165" y="216.63663603001845" font-size="12" fill="#ec4899" text-anchor="middle">read</text>
+<path d="M 400 290 L 450 275" fill="none" stroke="#ec4899" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="422.12652114433655" y="272.92173714778846" font-size="12" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">read</text>
+<text x="422.12652114433655" y="272.92173714778846" font-size="12" fill="#ec4899" text-anchor="middle">read</text>
+<path d="M 555 310 L 555 350" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="545.0" y="330.0" font-size="12" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">emit</text>
+<text x="545.0" y="330.0" font-size="12" fill="#22c55e" text-anchor="middle">emit</text>
+<text x="190.0" y="391.9" font-size="14" fill="#15803d" text-anchor="middle" opacity="1.0">Bridges auth -&gt; observability:</text>
+<text x="190.0" y="409.4" font-size="14" fill="#15803d" text-anchor="middle" opacity="1.0">every action tied to</text>
+<text x="190.0" y="426.9" font-size="14" fill="#15803d" text-anchor="middle" opacity="1.0">an authenticated identity</text>
+<text x="190.0" y="444.4" font-size="14" fill="#15803d" text-anchor="middle" opacity="1.0">(non-repudiation)</text>
+</svg>

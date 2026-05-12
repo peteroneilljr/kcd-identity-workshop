@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 800 560" width="800" height="560" font-family="Virgil, Comic Sans MS, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+</defs>
+<rect x="20" y="-10" width="800" height="560" fill="#ffffff"/>
+<text x="420.0" y="30.4" font-size="24" fill="#1e1e1e" text-anchor="middle" opacity="1.0">KCD Identity Workshop — Docs Map</text>
+<text x="420.0" y="53.9" font-size="14" fill="#757575" text-anchor="middle" opacity="1.0">Conceptual deep-dives &amp; reading paths</text>
+<rect x="40" y="80" width="720" height="180" rx="8" ry="8" fill="#dbe4ff" stroke="#4a9eed" stroke-width="1" opacity="0.4"/>
+<text x="116.0" y="103.3" font-size="18" fill="#2563eb" text-anchor="middle" opacity="1.0">Foundations</text>
+<rect x="60" y="130" width="160" height="110" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="140.0" y="179.0" font-size="15" fill="#1e1e1e" text-anchor="middle">REVERSE-PROXY</text>
+<text x="140.0" y="197.75" font-size="15" fill="#1e1e1e" text-anchor="middle">(Envoy gateway)</text>
+<rect x="240" y="130" width="160" height="110" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="320.0" y="179.0" font-size="15" fill="#1e1e1e" text-anchor="middle">OAUTH-OIDC</text>
+<text x="320.0" y="197.75" font-size="15" fill="#1e1e1e" text-anchor="middle">(Keycloak tokens)</text>
+<rect x="420" y="130" width="160" height="110" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="500.0" y="179.0" font-size="15" fill="#1e1e1e" text-anchor="middle">JWT</text>
+<text x="500.0" y="197.75" font-size="15" fill="#1e1e1e" text-anchor="middle">(JSON Web Token)</text>
+<rect x="600" y="130" width="140" height="110" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="670.0" y="170.65" font-size="14" fill="#1e1e1e" text-anchor="middle">ACCESS-</text>
+<text x="670.0" y="188.15" font-size="14" fill="#1e1e1e" text-anchor="middle">LOGGING</text>
+<text x="670.0" y="205.65" font-size="14" fill="#1e1e1e" text-anchor="middle">(identity logs)</text>
+<rect x="40" y="290" width="480" height="160" rx="8" ry="8" fill="#d3f9d8" stroke="#22c55e" stroke-width="1" opacity="0.4"/>
+<text x="191.0" y="313.3" font-size="18" fill="#15803d" text-anchor="middle" opacity="1.0">Backend-specific deep dives</text>
+<rect x="70" y="340" width="200" height="95" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="170.0" y="381.5" font-size="15" fill="#1e1e1e" text-anchor="middle">POSTGRES-RLS</text>
+<text x="170.0" y="400.25" font-size="15" fill="#1e1e1e" text-anchor="middle">(SET ROLE bridge)</text>
+<rect x="290" y="340" width="210" height="95" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="395.0" y="381.5" font-size="15" fill="#1e1e1e" text-anchor="middle">SSH-CERTIFICATES</text>
+<text x="395.0" y="400.25" font-size="15" fill="#1e1e1e" text-anchor="middle">(short-lived certs)</text>
+<rect x="540" y="290" width="220" height="160" rx="8" ry="8" fill="#e5dbff" stroke="#8b5cf6" stroke-width="1" opacity="0.4"/>
+<text x="611.0" y="313.3" font-size="18" fill="#6d28d9" text-anchor="middle" opacity="1.0">Synthesis</text>
+<rect x="560" y="340" width="180" height="95" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
+<text x="650.0" y="391.1" font-size="16" fill="#1e1e1e" text-anchor="middle">IDENTITY-BRIDGING</text>
+<text x="380.0" y="493.3" font-size="18" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Suggested reading order</text>
+<path d="M 140 520 L 300 520" fill="none" stroke="#757575" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="220.0" y="510.0" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">1 -&gt; 2</text>
+<text x="220.0" y="510.0" font-size="14" fill="#757575" text-anchor="middle">1 -&gt; 2</text>
+<path d="M 320 520 L 480 520" fill="none" stroke="#757575" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="400.0" y="510.0" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">3</text>
+<text x="400.0" y="510.0" font-size="14" fill="#757575" text-anchor="middle">3</text>
+<path d="M 500 520 L 660 520" fill="none" stroke="#757575" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="580.0" y="510.0" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">4</text>
+<text x="580.0" y="510.0" font-size="14" fill="#757575" text-anchor="middle">4</text>
+<text x="115.0" y="521.9" font-size="14" fill="#2563eb" text-anchor="middle" opacity="1.0">Reverse Proxy</text>
+<text x="730.0" y="521.9" font-size="14" fill="#6d28d9" text-anchor="middle" opacity="1.0">Identity Bridging</text>
+</svg>

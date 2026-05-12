@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 780 550" width="780" height="550" font-family="Virgil, Comic Sans MS, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+</defs>
+<rect x="20" y="-10" width="780" height="550" fill="#ffffff"/>
+<text x="420.0" y="28.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Reverse Proxy — Envoy as Identity Gateway</text>
+<rect x="40" y="260" width="120" height="80" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="100.0" y="294.0" font-size="15" fill="#1e1e1e" text-anchor="middle">User</text>
+<text x="100.0" y="312.75" font-size="15" fill="#1e1e1e" text-anchor="middle">(Bearer JWT)</text>
+<rect x="210" y="90" width="380" height="430" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="0.35"/>
+<text x="425.0" y="115.3" font-size="18" fill="#6d28d9" text-anchor="middle" opacity="1.0">Envoy Proxy :8080</text>
+<rect x="240" y="140" width="320" height="60" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="400.0" y="173.6" font-size="16" fill="#1e1e1e" text-anchor="middle">Listener</text>
+<rect x="240" y="215" width="320" height="60" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="400.0" y="248.375" font-size="15" fill="#1e1e1e" text-anchor="middle">JWT Auth Filter (verify via JWKS)</text>
+<rect x="240" y="290" width="320" height="60" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="400.0" y="323.375" font-size="15" fill="#1e1e1e" text-anchor="middle">RBAC Filter (path + username)</text>
+<rect x="240" y="365" width="320" height="60" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="400.0" y="398.6" font-size="16" fill="#1e1e1e" text-anchor="middle">Router Filter</text>
+<rect x="240" y="440" width="320" height="60" rx="8" ry="8" fill="#eebefa" stroke="#ec4899" stroke-width="2" opacity="1.0"/>
+<text x="400.0" y="473.375" font-size="15" fill="#1e1e1e" text-anchor="middle">Access Logger (identity + result)</text>
+<rect x="640" y="140" width="140" height="110" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="710.0" y="189.4" font-size="14" fill="#1e1e1e" text-anchor="middle">Keycloak</text>
+<text x="710.0" y="206.9" font-size="14" fill="#1e1e1e" text-anchor="middle">JWKS endpoint</text>
+<rect x="640" y="290" width="140" height="50" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="710.0" y="318.375" font-size="15" fill="#1e1e1e" text-anchor="middle">app: public</text>
+<rect x="640" y="350" width="140" height="50" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="710.0" y="378.375" font-size="15" fill="#1e1e1e" text-anchor="middle">app: alice</text>
+<rect x="640" y="410" width="140" height="50" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="710.0" y="438.375" font-size="15" fill="#1e1e1e" text-anchor="middle">app: bob</text>
+<path d="M 160 300 L 240 170" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="191.48341683295456" y="229.75902574335666" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">1. HTTPS + JWT</text>
+<text x="191.48341683295456" y="229.75902574335666" font-size="14" fill="#4a9eed" text-anchor="middle">1. HTTPS + JWT</text>
+<path d="M 400 200 L 400 215" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 400 275 L 400 290" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 400 350 L 400 365" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 400 425 L 400 440" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 560 245 L 640 195" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="594.7000105999682" y="211.52001695994912" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">2. fetch JWKS</text>
+<text x="594.7000105999682" y="211.52001695994912" font-size="13" fill="#f59e0b" text-anchor="middle">2. fetch JWKS</text>
+<path d="M 560 395 L 640 375" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="597.5746437496367" y="375.29857499854666" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">3. route</text>
+<text x="597.5746437496367" y="375.29857499854666" font-size="13" fill="#22c55e" text-anchor="middle">3. route</text>
+<text x="130.0" y="391.9" font-size="14" fill="#ef4444" text-anchor="middle" opacity="1.0">Zero trust:</text>
+<text x="130.0" y="409.4" font-size="14" fill="#ef4444" text-anchor="middle" opacity="1.0">fail-fast at proxy,</text>
+<text x="130.0" y="426.9" font-size="14" fill="#ef4444" text-anchor="middle" opacity="1.0">backends never see</text>
+<text x="130.0" y="444.4" font-size="14" fill="#ef4444" text-anchor="middle" opacity="1.0">unauth requests</text>
+</svg>

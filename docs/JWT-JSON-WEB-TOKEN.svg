@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 -10 790 595" width="790" height="595" font-family="Virgil, Comic Sans MS, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+</defs>
+<rect x="10" y="-10" width="790" height="595" fill="#ffffff"/>
+<text x="435.0" y="28.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">JWT — Structure, Signing &amp; Validation</text>
+<rect x="30" y="90" width="150" height="110" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="105.0" y="130.65" font-size="14" fill="#1e1e1e" text-anchor="middle">Keycloak</text>
+<text x="105.0" y="148.15" font-size="14" fill="#1e1e1e" text-anchor="middle">private key</text>
+<text x="105.0" y="165.65" font-size="14" fill="#1e1e1e" text-anchor="middle">(signs RS256)</text>
+<rect x="230" y="80" width="380" height="210" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="0.35"/>
+<text x="485.0" y="106.45" font-size="17" fill="#b45309" text-anchor="middle" opacity="1.0">JWT = h.p.s (base64url)</text>
+<rect x="250" y="130" width="340" height="40" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="420.0" y="152.925" font-size="13" fill="#1e1e1e" text-anchor="middle">Header  { alg:RS256, typ:JWT, kid }</text>
+<rect x="250" y="180" width="340" height="60" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="420.0" y="205.2" font-size="12" fill="#1e1e1e" text-anchor="middle">Payload  { iss, sub, aud, exp, iat,</text>
+<text x="420.0" y="220.2" font-size="12" fill="#1e1e1e" text-anchor="middle">preferred_username, roles }</text>
+<rect x="250" y="250" width="340" height="30" rx="8" ry="8" fill="#ffc9c9" stroke="#ef4444" stroke-width="2" opacity="1.0"/>
+<text x="420.0" y="267.925" font-size="13" fill="#1e1e1e" text-anchor="middle">Signature  RS256(h+'.'+p, privKey)</text>
+<rect x="640" y="90" width="140" height="110" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="710.0" y="131.675" font-size="13" fill="#1e1e1e" text-anchor="middle">JWKS endpoint</text>
+<text x="710.0" y="147.925" font-size="13" fill="#1e1e1e" text-anchor="middle">(public keys</text>
+<text x="710.0" y="164.175" font-size="13" fill="#1e1e1e" text-anchor="middle">by kid)</text>
+<path d="M 180 145 L 230 140" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="204.00496280979002" y="132.5496280979001" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">sign</text>
+<text x="204.00496280979002" y="132.5496280979001" font-size="13" fill="#f59e0b" text-anchor="middle">sign</text>
+<path d="M 610 145 L 640 145" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<rect x="290" y="340" width="260" height="80" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
+<text x="420.0" y="383.6" font-size="16" fill="#1e1e1e" text-anchor="middle">Envoy — verify JWT</text>
+<path d="M 420 290 L 420 340" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="410.0" y="315.0" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">Bearer JWT</text>
+<text x="410.0" y="315.0" font-size="13" fill="#4a9eed" text-anchor="middle">Bearer JWT</text>
+<path d="M 550 380 L 710 160" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="621.9126391569681" y="264.11828302324955" font-size="13" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">fetch pubkey</text>
+<text x="621.9126391569681" y="264.11828302324955" font-size="13" fill="#f59e0b" text-anchor="middle">fetch pubkey</text>
+<rect x="40" y="470" width="230" height="50" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="155.0" y="498.15" font-size="14" fill="#1e1e1e" text-anchor="middle">1. signature OK</text>
+<rect x="290" y="470" width="230" height="50" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="405.0" y="498.15" font-size="14" fill="#1e1e1e" text-anchor="middle">2. iss &amp; aud match</text>
+<rect x="540" y="470" width="230" height="50" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="655.0" y="498.15" font-size="14" fill="#1e1e1e" text-anchor="middle">3. exp / nbf valid</text>
+<path d="M 350 425 L 170 465" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 420 425 L 420 465" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 490 425 L 670 465" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="440.0" y="556.9" font-size="14" fill="#ef4444" text-anchor="middle" opacity="1.0">Self-contained, stateless. 5-min expiry limits theft window.</text>
+</svg>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 780 600" width="780" height="600" font-family="Virgil, Comic Sans MS, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+</defs>
+<rect x="20" y="-10" width="780" height="600" fill="#ffffff"/>
+<text x="430.0" y="28.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Identity Bridging — One Login, Many Systems</text>
+<rect x="40" y="230" width="110" height="80" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="95.0" y="273.6" font-size="16" fill="#1e1e1e" text-anchor="middle">User</text>
+<rect x="200" y="230" width="140" height="80" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="270.0" y="273.375" font-size="15" fill="#1e1e1e" text-anchor="middle">Keycloak (IdP)</text>
+<rect x="390" y="235" width="120" height="70" rx="8" ry="8" fill="#fff3bf" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="450.0" y="272.7" font-size="12" fill="#1e1e1e" text-anchor="middle">short-lived JWT</text>
+<path d="M 150 270 L 200 270" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="175.0" y="260.0" font-size="12" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">login</text>
+<text x="175.0" y="260.0" font-size="12" fill="#4a9eed" text-anchor="middle">login</text>
+<path d="M 340 270 L 390 270" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<rect x="560" y="70" width="220" height="110" rx="8" ry="8" fill="#d3f9d8" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="670.0" y="128.15" font-size="14" fill="#1e1e1e" text-anchor="middle">A. Native OIDC -&gt; Grafana</text>
+<rect x="560" y="200" width="220" height="110" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
+<text x="670.0" y="258.15" font-size="14" fill="#1e1e1e" text-anchor="middle">B. JWT -&gt; 15m SSH cert</text>
+<rect x="560" y="330" width="220" height="110" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="670.0" y="388.15" font-size="14" fill="#1e1e1e" text-anchor="middle">C. Bearer gateway (Envoy)</text>
+<rect x="560" y="460" width="220" height="110" rx="8" ry="8" fill="#c3fae8" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="670.0" y="518.15" font-size="14" fill="#1e1e1e" text-anchor="middle">D. SET ROLE -&gt; Postgres</text>
+<path d="M 510 270 L 560 130" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 510 270 L 560 255" fill="none" stroke="#8b5cf6" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 510 270 L 560 385" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 510 270 L 560 515" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="260.0" y="391.9" font-size="14" fill="#15803d" text-anchor="middle" opacity="1.0">Shape every backend follows:</text>
+<text x="260.0" y="409.4" font-size="14" fill="#15803d" text-anchor="middle" opacity="1.0">  federated identity at edge</text>
+<text x="260.0" y="426.9" font-size="14" fill="#15803d" text-anchor="middle" opacity="1.0">+ short-lived native credential at resource</text>
+<text x="160.0" y="493.6" font-size="16" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Three prerequisites</text>
+<text x="210.0" y="516.05" font-size="13" fill="#1e1e1e" text-anchor="middle" opacity="1.0">1. Verifiable identity at the resource</text>
+<text x="210.0" y="536.05" font-size="13" fill="#1e1e1e" text-anchor="middle" opacity="1.0">2. Resource authz honors that identity</text>
+<text x="220.0" y="556.05" font-size="13" fill="#1e1e1e" text-anchor="middle" opacity="1.0">3. Credentials at the resource are short-lived</text>
+</svg>
