@@ -4,6 +4,8 @@ Conceptual deep-dives on the technologies and patterns used in this workshop. Ea
 
 The hands-on side of the workshop lives in [`../follow-along/`](../follow-along/). These docs are for *understanding*; the follow-along is for *running*.
 
+![Docs map: Foundations (Reverse Proxy, OAuth/OIDC, JWT, Access Logging) feed into the Backend-specific deep dives (Postgres RLS, SSH Certificates), which feed into the Synthesis doc (Identity Bridging); suggested reading order runs left-to-right](README.svg)
+
 ## Foundations
 
 These cover the building blocks every backend in the demo relies on.

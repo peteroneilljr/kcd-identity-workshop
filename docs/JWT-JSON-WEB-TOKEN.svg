@@ -2,7 +2,7 @@
 <defs>
 <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
 </defs>
-<rect x="10" y="-10" width="790" height="595" fill="#ffffff"/>
+<rect x="11" y="-9" width="788" height="593" fill="#ffffff" stroke="#9ca3af" stroke-width="2" rx="6" ry="6"/>
 <text x="435.0" y="28.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">JWT — Structure, Signing &amp; Validation</text>
 <rect x="30" y="90" width="150" height="110" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
 <text x="105.0" y="130.65" font-size="14" fill="#1e1e1e" text-anchor="middle">Keycloak</text>

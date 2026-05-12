@@ -2,6 +2,8 @@
 
 This document explains how the demo bridges a Keycloak JWT identity into Postgres without Postgres ever needing to understand JWTs. The trust boundary is the **database**, not the application — even a buggy or compromised `db-app` cannot leak rows across users.
 
+![Envoy forwards `x-jwt-payload` to db-app; db-app decodes it, validates the allowlist, connects as the NOINHERIT login role `dbproxy`, and issues `SET LOCAL ROLE alice`; Postgres RLS policy on `documents` filters rows by `current_user`](POSTGRES-RLS.svg)
+
 ## Table of Contents
 
 1. [The problem: Postgres doesn't speak OIDC](#the-problem-postgres-doesnt-speak-oidc)

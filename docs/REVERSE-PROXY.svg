@@ -2,7 +2,7 @@
 <defs>
 <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
 </defs>
-<rect x="20" y="-10" width="780" height="550" fill="#ffffff"/>
+<rect x="21" y="-9" width="778" height="548" fill="#ffffff" stroke="#9ca3af" stroke-width="2" rx="6" ry="6"/>
 <text x="420.0" y="28.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Reverse Proxy — Envoy as Identity Gateway</text>
 <rect x="40" y="260" width="120" height="80" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
 <text x="100.0" y="294.0" font-size="15" fill="#1e1e1e" text-anchor="middle">User</text>

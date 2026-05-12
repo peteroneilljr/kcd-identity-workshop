@@ -2,7 +2,7 @@
 <defs>
 <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
 </defs>
-<rect x="20" y="-10" width="780" height="600" fill="#ffffff"/>
+<rect x="21" y="-9" width="778" height="598" fill="#ffffff" stroke="#9ca3af" stroke-width="2" rx="6" ry="6"/>
 <text x="430.0" y="28.7" font-size="22" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Identity Bridging — One Login, Many Systems</text>
 <rect x="40" y="230" width="110" height="80" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
 <text x="95.0" y="273.6" font-size="16" fill="#1e1e1e" text-anchor="middle">User</text>

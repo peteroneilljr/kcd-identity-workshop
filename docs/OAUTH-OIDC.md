@@ -2,6 +2,8 @@
 
 This document explains how OAuth2 and OpenID Connect work in our demo and why both protocols are essential for modern authentication and authorization.
 
+![Sequence diagram with five lifelines — Resource Owner, Client, Keycloak, Envoy, Backend — showing the eight numbered messages of the OAuth2/OIDC flow: credentials → POST /token → JWT + refresh → Authorization: Bearer → JWKS lookup → public key → forward → response](OAUTH-OIDC.svg)
+
 ## Table of Contents
 
 1. [OAuth2 vs OIDC: The Relationship](#oauth2-vs-oidc-the-relationship)

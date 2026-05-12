@@ -2,6 +2,8 @@
 
 This document explains how SSH user certificates work, how the demo uses them to bridge a Keycloak identity into a shell session, and why this pattern beats long-lived public keys for any setup with more than a handful of users.
 
+![Sequence: user authenticates to Keycloak for a JWT, POSTs JWT + public key to ssh-ca (behind Envoy), receives a 15-minute signed cert, then runs `ssh -i key alice@host`; sshd verifies via TrustedUserCAKeys, AuthorizedPrincipalsFile, validity window, with AuthorizedKeysFile=none closing the fallback](SSH-CERTIFICATES.svg)
+
 ## Table of Contents
 
 1. [Public-key auth: the baseline](#public-key-auth-the-baseline)
