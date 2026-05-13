@@ -1,5 +1,7 @@
 # Thanks for following along! 
 
+This presenation was brought to you by Peter ONeill and Chris de la Garza (courtesy of Teleport). 
+
 Here are some parting notes and questions to help you continue to learn.
 
 ## Generalizing: where else this pattern shows up
