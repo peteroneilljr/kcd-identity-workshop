@@ -17,11 +17,11 @@
 <text x="360.0" y="135.0" font-size="15" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">2. JWT / session</text>
 <text x="360.0" y="135.0" font-size="15" fill="#f59e0b" text-anchor="middle">2. JWT / session</text>
 <rect x="60" y="300" width="400" height="110" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
-<text x="260.0" y="347.8" font-size="18" fill="#1e1e1e" text-anchor="middle">Envoy   port 8080</text>
-<text x="260.0" y="370.3" font-size="18" fill="#1e1e1e" text-anchor="middle">jwt_authn  -&gt;  rbac  -&gt;  route</text>
+<text x="260.0" y="348.2" font-size="17" fill="#1e1e1e" text-anchor="middle">Envoy   port 8080</text>
+<text x="260.0" y="369.45" font-size="17" fill="#1e1e1e" text-anchor="middle">jwt_authn (JWKS)  -&gt;  rbac  -&gt;  route</text>
 <rect x="540" y="300" width="200" height="110" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
 <text x="640.0" y="347.8" font-size="18" fill="#1e1e1e" text-anchor="middle">Grafana</text>
-<text x="640.0" y="370.3" font-size="18" fill="#1e1e1e" text-anchor="middle">port 3030</text>
+<text x="640.0" y="370.3" font-size="18" fill="#1e1e1e" text-anchor="middle">OIDC client</text>
 <rect x="820" y="300" width="260" height="110" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
 <text x="950.0" y="348.2" font-size="17" fill="#1e1e1e" text-anchor="middle">sshd  port 2222</text>
 <text x="950.0" y="369.45" font-size="17" fill="#1e1e1e" text-anchor="middle">TrustedUserCAKeys</text>
@@ -34,12 +34,6 @@
 <path d="M 220 180 L 220 270 L 950 270 L 950 300" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
 <text x="555.0" y="260.0" font-size="15" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">ssh -i cert</text>
 <text x="555.0" y="260.0" font-size="15" fill="#f59e0b" text-anchor="middle">ssh -i cert</text>
-<path d="M 440 300 L 500 180" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
-<text x="461.05572809000085" y="235.52786404500043" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">JWKS</text>
-<text x="461.05572809000085" y="235.52786404500043" font-size="14" fill="#8b5cf6" text-anchor="middle">JWKS</text>
-<path d="M 640 300 L 640 180" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
-<text x="650.0" y="240.0" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">OIDC</text>
-<text x="650.0" y="240.0" font-size="14" fill="#22c55e" text-anchor="middle">OIDC</text>
 <rect x="60" y="480" width="110" height="80" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
 <text x="115.0" y="513.6" font-size="16" fill="#1e1e1e" text-anchor="middle">public</text>
 <text x="115.0" y="533.6" font-size="16" fill="#1e1e1e" text-anchor="middle">app</text>
