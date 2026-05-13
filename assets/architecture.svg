@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 1100 882" width="1100" height="882" font-family="Virgil, Comic Sans MS, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+</defs>
+<rect x="21" y="-9" width="1098" height="880" fill="#ffffff" stroke="#9ca3af" stroke-width="2" rx="6" ry="6"/>
+<text x="600.0" y="32.099999999999994" font-size="26" fill="#1e1e1e" text-anchor="middle" opacity="1.0">Identity-Aware Access — Architecture</text>
+<rect x="80" y="200" width="170" height="100" rx="8" ry="8" fill="#a5d8ff" stroke="#4a9eed" stroke-width="2" opacity="1.0"/>
+<text x="165.0" y="242.8" font-size="18" fill="#1e1e1e" text-anchor="middle">User</text>
+<text x="165.0" y="265.3" font-size="18" fill="#1e1e1e" text-anchor="middle">(alice / bob)</text>
+<rect x="500" y="80" width="280" height="100" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="640.0" y="122.8" font-size="18" fill="#1e1e1e" text-anchor="middle">Keycloak (IdP)</text>
+<text x="640.0" y="145.3" font-size="18" fill="#1e1e1e" text-anchor="middle">issues JWTs + OIDC sessions</text>
+<path d="M 250 230 L 520 140" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="381.8377223398316" y="175.51316701949486" font-size="16" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">1. login</text>
+<text x="381.8377223398316" y="175.51316701949486" font-size="16" fill="#4a9eed" text-anchor="middle">1. login</text>
+<path d="M 500 160 L 220 240" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="357.2527887210262" y="190.38476052359178" font-size="16" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">2. JWT / session</text>
+<text x="357.2527887210262" y="190.38476052359178" font-size="16" fill="#f59e0b" text-anchor="middle">2. JWT / session</text>
+<rect x="80" y="380" width="380" height="110" rx="8" ry="8" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
+<text x="270.0" y="427.8" font-size="18" fill="#1e1e1e" text-anchor="middle">Envoy   port 8080</text>
+<text x="270.0" y="450.3" font-size="18" fill="#1e1e1e" text-anchor="middle">jwt_authn  -&gt;  rbac  -&gt;  route</text>
+<rect x="540" y="380" width="200" height="110" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="640.0" y="427.8" font-size="18" fill="#1e1e1e" text-anchor="middle">Grafana</text>
+<text x="640.0" y="450.3" font-size="18" fill="#1e1e1e" text-anchor="middle">port 3030</text>
+<rect x="820" y="380" width="280" height="110" rx="8" ry="8" fill="#ffd8a8" stroke="#f59e0b" stroke-width="2" opacity="1.0"/>
+<text x="960.0" y="427.8" font-size="18" fill="#1e1e1e" text-anchor="middle">sshd  port 2222</text>
+<text x="960.0" y="450.3" font-size="18" fill="#1e1e1e" text-anchor="middle">TrustedUserCAKeys</text>
+<path d="M 250 280 L 270 380" fill="none" stroke="#4a9eed" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="269.8058067569092" y="328.03883864861814" font-size="15" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">Bearer JWT</text>
+<text x="269.8058067569092" y="328.03883864861814" font-size="15" fill="#4a9eed" text-anchor="middle">Bearer JWT</text>
+<path d="M 250 270 L 640 380" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="447.71460165021807" y="315.37550324013597" font-size="15" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">OIDC code flow</text>
+<text x="447.71460165021807" y="315.37550324013597" font-size="15" fill="#22c55e" text-anchor="middle">OIDC code flow</text>
+<path d="M 250 260 L 960 380" fill="none" stroke="#f59e0b" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="606.666505938891" y="310.139839861562" font-size="15" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">ssh -i cert</text>
+<text x="606.666505938891" y="310.139839861562" font-size="15" fill="#f59e0b" text-anchor="middle">ssh -i cert</text>
+<path d="M 400 380 L 540 180" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="461.8076807948096" y="274.26537655636673" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">JWKS</text>
+<text x="461.8076807948096" y="274.26537655636673" font-size="14" fill="#8b5cf6" text-anchor="middle">JWKS</text>
+<path d="M 640 380 L 640 180" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="650.0" y="280.0" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">OIDC</text>
+<text x="650.0" y="280.0" font-size="14" fill="#22c55e" text-anchor="middle">OIDC</text>
+<rect x="40" y="580" width="110" height="80" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="95.0" y="613.6" font-size="16" fill="#1e1e1e" text-anchor="middle">public</text>
+<text x="95.0" y="633.6" font-size="16" fill="#1e1e1e" text-anchor="middle">app</text>
+<rect x="170" y="580" width="110" height="80" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="225.0" y="613.6" font-size="16" fill="#1e1e1e" text-anchor="middle">alice</text>
+<text x="225.0" y="633.6" font-size="16" fill="#1e1e1e" text-anchor="middle">app</text>
+<rect x="300" y="580" width="110" height="80" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="355.0" y="613.6" font-size="16" fill="#1e1e1e" text-anchor="middle">bob</text>
+<text x="355.0" y="633.6" font-size="16" fill="#1e1e1e" text-anchor="middle">app</text>
+<rect x="430" y="580" width="140" height="80" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="500.0" y="613.6" font-size="16" fill="#1e1e1e" text-anchor="middle">db-app</text>
+<text x="500.0" y="633.6" font-size="16" fill="#1e1e1e" text-anchor="middle">SET ROLE</text>
+<rect x="590" y="580" width="150" height="80" rx="8" ry="8" fill="#b2f2bb" stroke="#22c55e" stroke-width="2" opacity="1.0"/>
+<text x="665.0" y="613.6" font-size="16" fill="#1e1e1e" text-anchor="middle">ssh-ca</text>
+<text x="665.0" y="633.6" font-size="16" fill="#1e1e1e" text-anchor="middle">signs certs</text>
+<path d="M 95 490 L 95 580" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 225 490 L 225 580" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 355 490 L 355 580" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 420 490 L 500 580" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<path d="M 450 490 L 665 580" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<rect x="420" y="720" width="160" height="70" rx="8" ry="8" fill="#c3fae8" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="500.0" y="758.6" font-size="16" fill="#1e1e1e" text-anchor="middle">Postgres  (RLS)</text>
+<path d="M 500 660 L 500 720" fill="none" stroke="#06b6d4" stroke-width="2" marker-end="url(#ah)" opacity="1.0"/>
+<text x="490.0" y="690.0" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">SET LOCAL ROLE</text>
+<text x="490.0" y="690.0" font-size="14" fill="#06b6d4" text-anchor="middle">SET LOCAL ROLE</text>
+<path d="M 740 600 L 1020 440" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#ah)" opacity="1.0"/>
+<text x="875.0386106164317" y="511.3175685787554" font-size="14" fill="#ffffff" stroke="#ffffff" stroke-width="4" text-anchor="middle" paint-order="stroke">trusts CA pubkey</text>
+<text x="875.0386106164317" y="511.3175685787554" font-size="14" fill="#f59e0b" text-anchor="middle">trusts CA pubkey</text>
+<text x="580.0" y="842.75" font-size="15" fill="#15803d" text-anchor="middle" opacity="1.0">All credentials at the resource layer are short-lived (5-min JWT, 15-min SSH cert) — no long-lived secrets.</text>
+</svg>

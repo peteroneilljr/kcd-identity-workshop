@@ -16,18 +16,7 @@ The user authenticates to Keycloak once. From there, the same identity controls:
 
 ## Architecture
 
-![Identity-Aware Access architecture: Keycloak as the identity provider; users reach Envoy with a Bearer JWT, Grafana via OIDC code flow, and sshd with a CA-signed cert; behind Envoy are public/alice/bob HTTP apps plus db-app (which SET ROLEs into Postgres with row-level security) and ssh-ca (which signs SSH certs whose principal is the JWT username, trusted by sshd's CA pubkey).](docs/architecture.png)
-
-<!--
-  docs/architecture.png is the rendered export of docs/architecture.excalidraw.
-  To regenerate after editing the source:
-    1. Open https://excalidraw.com/#json=bbwfex_7LwEewrH5OtHYI,L1jy0RjmtDQuEwW_x_xcVA
-       (or import docs/architecture.excalidraw)
-    2. File → Export image → PNG, "with background", scale 2x
-    3. Save as docs/architecture.png
--->
-
-> **Edit the diagram:** [`docs/architecture.excalidraw`](docs/architecture.excalidraw) is the source. Open it in [excalidraw.com](https://excalidraw.com), the [Excalidraw VS Code extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor), or any tool that reads `.excalidraw` JSON. Live interactive copy is also at <https://excalidraw.com/#json=bbwfex_7LwEewrH5OtHYI,L1jy0RjmtDQuEwW_x_xcVA>.
+![Identity-Aware Access architecture: Keycloak as the identity provider; users reach Envoy with a Bearer JWT, Grafana via OIDC code flow, and sshd with a CA-signed cert; behind Envoy are public/alice/bob HTTP apps plus db-app (which SET ROLEs into Postgres with row-level security) and ssh-ca (which signs SSH certs whose principal is the JWT username, trusted by sshd's CA pubkey).](assets/architecture.svg)
 
 ASCII fallback (also useful in terminals):
 
@@ -252,7 +241,7 @@ demo-script.sh                            interactive paused walkthrough (color-
 tests/test-demo.sh                        full assertion suite (33 cases across 5 suites)
 .github/workflows/mirror-images.yml       mirrors upstream images into GHCR
 docs/                                     conceptual deep dives (proxy, OAuth/OIDC, JWTs, logging)
-docs/architecture.excalidraw              editable source of the architecture diagram above
+assets/                                   diagram sources (.excalidraw) and rendered .svg files
 ```
 
 ## Further reading
