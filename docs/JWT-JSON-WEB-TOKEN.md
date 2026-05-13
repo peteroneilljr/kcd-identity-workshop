@@ -2,7 +2,7 @@
 
 This document provides a comprehensive explanation of JSON Web Tokens (JWT), how they work, and how they're used in our demo for authentication and authorization.
 
-![JWT lifecycle: Keycloak signs the Header.Payload.Signature with its private key; Envoy receives the Bearer JWT, fetches the matching public key from the JWKS endpoint by `kid`, and validates signature, iss/aud, and exp/nbf](JWT-JSON-WEB-TOKEN.svg)
+![JWT lifecycle: Keycloak signs the Header.Payload.Signature with its private key; Envoy receives the Bearer JWT, fetches the matching public key from the JWKS endpoint by `kid`, and validates signature, iss/aud, and exp/nbf](../assets/JWT-JSON-WEB-TOKEN.svg)
 
 ## Table of Contents
 

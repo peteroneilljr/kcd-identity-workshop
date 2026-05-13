@@ -2,7 +2,7 @@
 
 This document explains how reverse proxies work in our demo, why they provide better security than traditional VPN-based approaches, and how Envoy implements identity-aware access control.
 
-![Envoy reverse proxy: a request with a Bearer JWT enters the listener, passes through the JWT auth filter (verified against Keycloak's JWKS endpoint), the RBAC filter, the router, and the access logger before reaching the public/alice/bob backends](REVERSE-PROXY.svg)
+![Envoy reverse proxy: a request with a Bearer JWT enters the listener, passes through the JWT auth filter (verified against Keycloak's JWKS endpoint), the RBAC filter, the router, and the access logger before reaching the public/alice/bob backends](../assets/REVERSE-PROXY.svg)
 
 ## Table of Contents
 

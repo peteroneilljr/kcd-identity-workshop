@@ -2,7 +2,7 @@
 
 This document explains how Envoy's access logger captures user identity from JWT tokens and includes it in audit logs, creating a complete trail of who accessed what resources.
 
-![The JWT auth filter stores claims (user, email, roles) in Envoy's dynamic metadata; the RBAC filter and access logger both read from that metadata, and the logger emits a JSON line tying every request to the authenticated identity](ACCESS-LOGGING.svg)
+![The JWT auth filter stores claims (user, email, roles) in Envoy's dynamic metadata; the RBAC filter and access logger both read from that metadata, and the logger emits a JSON line tying every request to the authenticated identity](../assets/ACCESS-LOGGING.svg)
 
 ## Table of Contents
 

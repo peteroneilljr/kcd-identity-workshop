@@ -2,7 +2,7 @@
 
 This document explains the meta-pattern that ties the entire workshop together. Each backend in this demo (HTTP, Postgres, Grafana, SSH) integrates Keycloak identity in a different way — but the *shape* of every integration is the same. Understanding that shape lets you apply the pattern to any system you'd care to add: AWS, kubectl, Vault, Slack, Snowflake, GraphQL, gRPC, S3, your own internal service.
 
-![One login to Keycloak produces a short-lived JWT that fans out to four backend patterns: A. Native OIDC (Grafana), B. JWT → 15-minute SSH cert, C. Bearer gateway (Envoy → HTTP), D. SET ROLE bridge (Postgres)](IDENTITY-BRIDGING.svg)
+![One login to Keycloak produces a short-lived JWT that fans out to four backend patterns: A. Native OIDC (Grafana), B. JWT → 15-minute SSH cert, C. Bearer gateway (Envoy → HTTP), D. SET ROLE bridge (Postgres)](../assets/IDENTITY-BRIDGING.svg)
 
 ## Table of Contents
 
