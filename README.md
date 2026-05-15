@@ -99,9 +99,14 @@ This is the same architectural pattern as Teleport, Vault SSH secrets engine, or
 
 `Loki` (single-binary, deployed by `k8s/80-loki.yaml`) is the log-aggregation backend. `Promtail` (DaemonSet, `k8s/81-promtail.yaml`) auto-discovers pods in `ams-demo`, scrapes their stdout, and ships log lines to Loki with labels (`app`, `pod`, `container`). The existing Grafana is provisioned (`k8s/82-grafana-provisioning.yaml`) with Loki as a data source and a pre-built **Identity Audit Trail** dashboard, so the OIDC-protected dashboard you logged into in module 01 now actually has something to show: per-user request rate over time, 401/403/200 stat tiles, a filterable log stream. Same Envoy access log, surfaced for ops/admin consumption rather than `kubectl logs | jq`.
 
-### Image mirror workflow — registry-independence
+### Image workflows — registry-independence
 
-`.github/workflows/mirror-images.yml` mirrors the 6 third-party images the cluster pulls at apply-time (alpine, grafana, envoy, keycloak, loki, promtail) into GHCR using `docker buildx imagetools create` (preserves multi-arch manifests). The cluster pulls these from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` instead of Docker Hub / Quay, so workshop attendees on shared conference Wi-Fi don't trip Docker Hub's anonymous pull rate limit. (Postgres is locally-built on top of `postgres:16-bookworm` because we add the `pgaudit` extension; that base image is pulled at `docker build` time on the developer's machine, not by the cluster.)
+Two workflows keep the cluster off Docker Hub entirely so workshop attendees on shared conference Wi-Fi don't trip the anonymous pull rate limit:
+
+- `.github/workflows/mirror-images.yml` mirrors the 6 third-party images the cluster pulls at apply-time (alpine, grafana, envoy, keycloak, loki, promtail) into GHCR using `docker buildx imagetools create` (preserves multi-arch manifests).
+- `.github/workflows/build-demo-images.yml` builds the 8 workshop-specific `demo-*` images from `docker/*/Dockerfile` and pushes them to the same GHCR namespace, multi-arch (amd64+arm64) via Buildx + QEMU. This includes the `demo-postgres` image (`postgres:16-bookworm` + `pgaudit`), so attendees no longer need to `docker build` anything locally.
+
+All 14 images end up under `ghcr.io/peteroneilljr/kcd-identity-workshop/*`. Every base-image pull from Docker Hub happens inside GitHub Actions runners, not on the attendee's machine.
 
 ## How identity flows through each backend
 

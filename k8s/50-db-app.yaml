@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: db-app
-          image: demo-db-app:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-db-app:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: SERVICE_NAME

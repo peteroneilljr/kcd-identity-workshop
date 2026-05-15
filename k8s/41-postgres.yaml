@@ -50,7 +50,7 @@ spec:
         fsGroup: 999
       containers:
         - name: postgres
-          image: demo-postgres:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-postgres:latest
           imagePullPolicy: IfNotPresent
           # Logging, audit, and TLS settings:
           #   shared_preload_libraries=pgaudit  — load the pgaudit lib at startup

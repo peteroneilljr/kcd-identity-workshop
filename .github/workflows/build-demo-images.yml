@@ -1,0 +1,86 @@
+# Builds the 8 workshop-specific demo images and pushes them to GHCR.
+#
+# Why this exists: when run as a public workshop, attendees can't all
+# `docker build` from scratch (Docker Hub's anonymous-pull rate limit
+# trips quickly on shared NAT, and the build step adds setup time).
+# Pre-publishing here means `kubectl apply -f k8s/` just pulls from
+# ghcr.io — no Docker Hub traffic, no local build required.
+#
+# Companion to mirror-images.yml, which handles the third-party base
+# images this cluster pulls at apply-time (alpine, grafana, envoy, etc.).
+#
+# After the first run, the GHCR packages will be private. Make them
+# public (one-time, manual) at:
+#   https://github.com/peteroneilljr?tab=packages&repo_name=kcd-identity-workshop
+# or via API:
+#   gh api -X PATCH /user/packages/container/<name>/visibility -f visibility=public
+name: build demo images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "docker/**"
+      - ".github/workflows/build-demo-images.yml"
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - context: docker/public-app
+            name: demo-public-app
+          - context: docker/alice-app
+            name: demo-alice-app
+          - context: docker/bob-app
+            name: demo-bob-app
+          - context: docker/db-app
+            name: demo-db-app
+          - context: docker/ssh-ca-app
+            name: demo-ssh-ca-app
+          - context: docker/pg-ca-app
+            name: demo-pg-ca-app
+          - context: docker/sshd-app
+            name: demo-sshd
+          - context: docker/postgres-app
+            name: demo-postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # QEMU lets us cross-build arm64 on the amd64 runner. Workshop
+      # attendees are roughly half Apple Silicon, half Intel/Linux, so
+      # both archs need to be in the published manifest list.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.name }}:latest
+            ghcr.io/${{ github.repository }}/${{ matrix.name }}:${{ github.sha }}
+          # GHA cache keeps incremental rebuilds cheap — only the
+          # layers that actually changed get re-uploaded.
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

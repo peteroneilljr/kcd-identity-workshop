@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: public-app
-          image: demo-public-app:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-public-app:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: SERVICE_NAME
@@ -80,7 +80,7 @@ spec:
     spec:
       containers:
         - name: alice-app
-          image: demo-alice-app:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-alice-app:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: SERVICE_NAME
@@ -132,7 +132,7 @@ spec:
     spec:
       containers:
         - name: bob-app
-          image: demo-bob-app:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-bob-app:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: SERVICE_NAME

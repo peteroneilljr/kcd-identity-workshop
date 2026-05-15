@@ -2,9 +2,9 @@
 # workshop attendees don't hit Docker Hub anonymous-pull rate limits and so
 # the cluster has a single network destination for image pulls.
 #
-# Locally-built images (demo-public-app, demo-alice-app, etc.) are NOT
-# mirrored — they're built per-machine via `docker build`, since iterating
-# on those during the workshop shouldn't require pushing to a registry.
+# The workshop's own demo-* images are built and pushed by a separate
+# workflow — see build-demo-images.yml. This file only handles the
+# third-party upstreams.
 #
 # After the first run, the GHCR packages will be private. Make them public
 # (one-time, manual) at:

@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: sshd
-          image: demo-sshd:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-sshd:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 22

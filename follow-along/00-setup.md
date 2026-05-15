@@ -15,24 +15,9 @@ Get the cluster running so the rest of the workshop has something to talk to.
 | `http://localhost:3300` | Grafana | OIDC dashboard login |
 | `localhost:2222` | sshd | SSH target |
 
-## 1. Build the local app images
+## 1. Apply the manifests
 
-The 8 demo-* images are built from this repo. Docker Desktop's k8s shares the docker daemon's image cache automatically; on plain `kind`, follow each build with `kind load docker-image <tag>`.
-
-```bash
-docker build -t demo-public-app:k8s   ./docker/public-app
-docker build -t demo-alice-app:k8s    ./docker/alice-app
-docker build -t demo-bob-app:k8s      ./docker/bob-app
-docker build -t demo-db-app:k8s       ./docker/db-app
-docker build -t demo-ssh-ca-app:k8s   ./docker/ssh-ca-app
-docker build -t demo-pg-ca-app:k8s    ./docker/pg-ca-app      # signs PG client certs from JWT
-docker build -t demo-sshd:k8s         ./docker/sshd-app
-docker build -t demo-postgres:k8s     ./docker/postgres-app   # postgres + pgaudit
-```
-
-The 6 third-party base images that the cluster pulls at apply-time (alpine, grafana, envoy, keycloak, loki, promtail) come from `ghcr.io/peteroneilljr/kcd-identity-workshop/*` (a workshop-friendly mirror that bypasses Docker Hub rate limits). Postgres is built locally on top of `postgres:16-bookworm` because we add `pgaudit` for audit logging.
-
-## 2. Apply the manifests
+All 14 images this cluster needs — the 8 workshop-specific demo apps plus the 6 third-party base images (alpine, grafana, envoy, keycloak, loki, promtail) — live under `ghcr.io/peteroneilljr/kcd-identity-workshop/*`. Anonymous GHCR pulls aren't rate-limited the way Docker Hub's are, so a room full of attendees on shared NAT can all `apply` at once without tripping a 429.
 
 ```bash
 kubectl apply -f k8s/
@@ -45,7 +30,9 @@ Two CA keypairs are auto-generated on first apply by one-shot bootstrap Jobs:
 
 Both Jobs are idempotent — re-applies are no-ops once the secrets exist. No manual `ssh-keygen` or `openssl` needed.
 
-## 3. Wait for everything Ready
+(If you want to iterate on the demo app code locally, see [`docker/README.md`](../docker/README.md#local-iteration) — re-tag a fresh `docker build` with the GHCR name and `imagePullPolicy: IfNotPresent` will pick it up.)
+
+## 2. Wait for everything Ready
 
 ```bash
 kubectl -n ams-demo wait --for=condition=Available --timeout=240s deploy --all
@@ -77,7 +64,7 @@ job.batch/pg-ca-bootstrap    Complete   1/1           ...
 job.batch/ssh-ca-bootstrap   Complete   1/1           ...
 ```
 
-## 4. Open the user-facing ports
+## 3. Open the user-facing ports
 
 ```bash
 kubectl -n ams-demo port-forward svc/keycloak 8180:8180 &
@@ -92,7 +79,7 @@ These run in the background. To stop them later:
 pkill -f "kubectl.*port-forward"
 ```
 
-## 5. Sanity-check all four endpoints
+## 4. Sanity-check all four endpoints
 
 ```bash
 curl -s -o /dev/null -w "kc=%{http_code}\n"    http://localhost:8180/realms/demo

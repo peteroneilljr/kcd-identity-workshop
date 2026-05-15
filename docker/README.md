@@ -1,38 +1,40 @@
 # Container build contexts
 
-One folder per image. Each is a standalone build context — the only thing the cluster needs is the resulting `:k8s` tag in the local Docker daemon.
+One folder per image. CI builds each one and pushes to `ghcr.io/peteroneilljr/kcd-identity-workshop/<name>:latest` — see [`.github/workflows/build-demo-images.yml`](../.github/workflows/build-demo-images.yml). Workshop attendees never need to build locally; `kubectl apply -f k8s/` pulls everything from GHCR.
 
 | Folder | Image | Role |
 |---|---|---|
-| [`public-app/`](public-app/) | `demo-public-app:k8s` | HTTP service, allow-any-authenticated user (port 3000) |
-| [`alice-app/`](alice-app/) | `demo-alice-app:k8s` | HTTP service, only alice can hit (port 3002) |
-| [`bob-app/`](bob-app/) | `demo-bob-app:k8s` | HTTP service, only bob can hit (port 3001) |
-| [`db-app/`](db-app/) | `demo-db-app:k8s` | Postgres bridge — reads `x-jwt-payload`, `SET LOCAL ROLE`, queries (port 3003) |
-| [`ssh-ca-app/`](ssh-ca-app/) | `demo-ssh-ca-app:k8s` | SSH cert authority — HTTP, signs SSH user certs from JWT (port 3004) |
-| [`pg-ca-app/`](pg-ca-app/) | `demo-pg-ca-app:k8s` | Postgres client-cert authority — HTTP, signs PG client certs from JWT (port 3005) |
-| [`sshd-app/`](sshd-app/) | `demo-sshd:k8s` | Ubuntu sshd pod, trusts `ssh-ca`'s pubkey via `TrustedUserCAKeys` |
-| [`postgres-app/`](postgres-app/) | `demo-postgres:k8s` | `postgres:16-bookworm` + pgaudit, built locally so we get the audit extension |
+| [`public-app/`](public-app/) | `demo-public-app` | HTTP service, allow-any-authenticated user (port 3000) |
+| [`alice-app/`](alice-app/) | `demo-alice-app` | HTTP service, only alice can hit (port 3002) |
+| [`bob-app/`](bob-app/) | `demo-bob-app` | HTTP service, only bob can hit (port 3001) |
+| [`db-app/`](db-app/) | `demo-db-app` | Postgres bridge — reads `x-jwt-payload`, `SET LOCAL ROLE`, queries (port 3003) |
+| [`ssh-ca-app/`](ssh-ca-app/) | `demo-ssh-ca-app` | SSH cert authority — HTTP, signs SSH user certs from JWT (port 3004) |
+| [`pg-ca-app/`](pg-ca-app/) | `demo-pg-ca-app` | Postgres client-cert authority — HTTP, signs PG client certs from JWT (port 3005) |
+| [`sshd-app/`](sshd-app/) | `demo-sshd` | Ubuntu sshd pod, trusts `ssh-ca`'s pubkey via `TrustedUserCAKeys` |
+| [`postgres-app/`](postgres-app/) | `demo-postgres` | `postgres:16-bookworm` + pgaudit, built so we get the audit extension |
 
-## Build everything
+## Local iteration
+
+Manifests use `imagePullPolicy: IfNotPresent`, so if you re-tag a fresh local build with the GHCR name, the kubelet uses the local one:
 
 ```bash
-docker build -t demo-public-app:k8s   ./public-app
-docker build -t demo-alice-app:k8s    ./alice-app
-docker build -t demo-bob-app:k8s      ./bob-app
-docker build -t demo-db-app:k8s       ./db-app
-docker build -t demo-ssh-ca-app:k8s   ./ssh-ca-app
-docker build -t demo-pg-ca-app:k8s    ./pg-ca-app
-docker build -t demo-sshd:k8s         ./sshd-app
-docker build -t demo-postgres:k8s     ./postgres-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-public-app:latest   ./public-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-alice-app:latest    ./alice-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-bob-app:latest      ./bob-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-db-app:latest       ./db-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-ssh-ca-app:latest   ./ssh-ca-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-pg-ca-app:latest    ./pg-ca-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-sshd:latest         ./sshd-app
+docker build -t ghcr.io/peteroneilljr/kcd-identity-workshop/demo-postgres:latest     ./postgres-app
 ```
 
-(Run from this directory, or prefix each path with `docker/` from the repo root — same as [`follow-along/00-setup.md`](../follow-along/00-setup.md) does.)
+(Run from this directory, or prefix each path with `docker/` from the repo root.)
 
-Docker Desktop's Kubernetes shares the docker daemon's image cache automatically. On `kind`, follow each build with `kind load docker-image <tag>`.
+Docker Desktop's Kubernetes shares the docker daemon's image cache automatically. On `kind`, follow each build with `kind load docker-image <tag>`. Pushing a fresh tag to GHCR happens via the [build-demo-images workflow](../.github/workflows/build-demo-images.yml) — either auto on push-to-main or manually via `gh workflow run "build demo images"`.
 
-## Why these are local
+## What's where
 
-The 8 demo images carry workshop-specific code (`alice-app` is just a one-liner that returns the JWT claims, `db-app` is the SET-ROLE bridge, etc.). The 6 third-party base images the cluster pulls at apply-time (alpine, grafana, envoy, keycloak, loki, promtail) come from the workshop's GHCR mirror — see [`.github/workflows/mirror-images.yml`](../.github/workflows/mirror-images.yml).
+The 8 demo images carry workshop-specific code (`alice-app` is a one-liner that returns the JWT claims, `db-app` is the SET-ROLE bridge, etc.). The 6 third-party base images the cluster pulls at apply-time (alpine, grafana, envoy, keycloak, loki, promtail) come from the same GHCR namespace via a separate mirror — see [`.github/workflows/mirror-images.yml`](../.github/workflows/mirror-images.yml). Net result: every image the workshop touches lives under `ghcr.io/peteroneilljr/kcd-identity-workshop/*`, so attendees never hit Docker Hub's anonymous-pull rate limit.
 
 ## Conceptual context
 

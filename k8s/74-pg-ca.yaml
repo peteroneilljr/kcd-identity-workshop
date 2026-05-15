@@ -32,7 +32,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: pg-ca
-          image: demo-pg-ca-app:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-pg-ca-app:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: SERVICE_NAME

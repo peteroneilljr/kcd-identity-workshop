@@ -14,11 +14,11 @@ kubectl delete namespace ams-demo
 
 The `ams-demo` namespace deletion cascades to all 10 deployments, all services, all configmaps, all secrets, the bootstrap Job, and the SSH CA materials it generated. Running `kubectl apply -f k8s/` again from scratch regenerates the SSH CA and re-imports the Keycloak realm — every rebuild is a clean rebuild.
 
-If you want to remove the locally-built images too:
+If you want to reclaim the GHCR-pulled images too:
 
 ```bash
-docker rmi demo-public-app:k8s demo-alice-app:k8s demo-bob-app:k8s \
-           demo-db-app:k8s demo-ssh-ca-app:k8s demo-sshd:k8s
+docker images --filter=reference='ghcr.io/peteroneilljr/kcd-identity-workshop/*' -q \
+  | xargs -r docker rmi
 ```
 
 ## Run the full assertion suite

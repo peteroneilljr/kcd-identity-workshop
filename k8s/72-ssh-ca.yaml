@@ -33,7 +33,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: ssh-ca
-          image: demo-ssh-ca-app:k8s
+          image: ghcr.io/peteroneilljr/kcd-identity-workshop/demo-ssh-ca-app:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: SERVICE_NAME
