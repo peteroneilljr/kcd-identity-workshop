@@ -262,4 +262,4 @@ assets/                                   diagram sources (.excalidraw) and rend
 - [OpenSSH certificate authentication](https://man.openbsd.org/ssh-keygen#CERTIFICATES)
 
 
-![QRCODE](./qrcode-workshop.png)
+![QR code linking to this workshop repository](assets/qrcode-workshop.png)
