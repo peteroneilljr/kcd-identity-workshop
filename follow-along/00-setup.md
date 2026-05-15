@@ -4,6 +4,11 @@ Get the cluster running so the rest of the workshop has something to talk to.
 
 [← back to index](README.md) · next: [01-grafana-oidc.md](01-grafana-oidc.md)
 
+## Before you apply
+
+- If **`kubectl apply`** fails with **`failed to download openapi`** or **`connection refused`** to `https://127.0.0.1:…`, the Kubernetes API is not reachable (cluster stopped, wrong context, or Docker not running for minikube’s docker driver). Fix the cluster first — see [99-cleanup.md → Troubleshooting](99-cleanup.md#troubleshooting).
+- When pasting several **`curl`** lines from workshop modules, run **one command per line** (or join with `&&`) so responses do not run together in the terminal.
+
 ## What you'll end up with
 
 10 pods in the `ams-demo` namespace plus a completed bootstrap Job, and four `kubectl port-forward` processes giving you access to:

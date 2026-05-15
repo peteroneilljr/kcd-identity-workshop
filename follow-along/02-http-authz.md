@@ -68,6 +68,10 @@ curl -i -H "Authorization: Bearer $TOKEN_ALICE" http://localhost:8080/bob   # 40
 
 The 403 is the moment that matters: alice has a *valid* token, but the RBAC policy `allow-bob-only` requires `preferred_username == "bob"`. Authentication ≠ Authorization.
 
+### Note on `authenticated_user` in JSON responses
+
+The demo apps may return **`"authenticated_user": "anonymous"`** even when **`jwt_claims`** shows the correct Keycloak user. They populate `authenticated_user` from the **`x-forwarded-user`** header, which this stack’s Envoy config does not set; identity for the workshop is carried in Envoy’s **`x-jwt-payload`** header instead (surfaced as **`jwt_claims`** in JSON). Envoy RBAC and the **`403`** above still key off the verified JWT metadata — trust those and **`jwt_claims`**, not `authenticated_user`, here.
+
 ## bob is the mirror image — and admin role doesn't override it
 
 ```bash

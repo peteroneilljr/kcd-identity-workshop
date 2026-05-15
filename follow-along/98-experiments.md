@@ -26,14 +26,17 @@ Envoy's `jwt_authn` filter checks the `exp` claim on every request — there's n
 
 ## Tampered token
 
-Modify a few characters in the middle of the token — the signature won't verify:
+Corrupt the JWT’s **signature** segment (third dot-separated part) so the header + payload no longer match the signature:
 
 ```bash
-FAKE="${TOKEN:0:50}HACKED${TOKEN:56}"
+TOKEN=$(curl -s -X POST "http://localhost:8180/realms/demo/protocol/openid-connect/token" \
+  -d "client_id=demo-client&grant_type=password&username=alice&password=password" | jq -r .access_token)
+
+FAKE=$(printf '%s' "$TOKEN" | python3 -c "import sys; t=sys.stdin.read().strip(); p=t.split('.'); assert len(p)==3; s=p[2]; p[2]=s[:8]+('X' if len(s)>8 else 'bad')+s[9:]; print('.'.join(p))")
 curl -i -H "Authorization: Bearer $FAKE" http://localhost:8080/alice     # 401, signature invalid
 ```
 
-The signature covers the header + payload, so any change to the claim section invalidates it. Even a privilege-escalation attempt (changing `preferred_username` from `alice` to `bob`) fails at the signature step before it gets a chance to be checked.
+This uses **Python** so it works in **zsh** and **bash** (bash-style `${TOKEN:0:50}` slicing is not portable). The signature covers the header + payload, so tampering the signature invalidates the JWT. Even a forged payload would fail verification before RBAC runs.
 
 ## Cross-cutting access matrix as a one-liner
 
