@@ -116,4 +116,4 @@ This is roughly how Teleport's `tsh ssh` works under the hood. The mental model 
 
 ---
 
-→ Next: [**04-postgres-rls.md**](04-postgres-rls.md) — same federated identity, this time bridged into Postgres. Two flavours: an HTTP-fronted `db-app` that translates JWT → `SET ROLE` (this module), and an interactive `psql` session that uses a short-lived client cert (next module — same federation pattern as the SSH cert you just signed).
+→ Next: [**04-postgres-rls.md**](04-postgres-rls.md) — same federated identity, bridged into Postgres. [**04**](04-postgres-rls.md) uses **`db-app`** (JWT → `SET ROLE` + RLS over HTTP). [**04b**](04b-postgres-direct-psql.md) adds interactive **`psql`** with a short-lived client cert — the same *OIDC → signed credential → native protocol auth* pattern as SSH above.

@@ -251,6 +251,7 @@ assets/                                   diagram sources (.excalidraw) and rend
 
 ## Further reading
 
+- [Contributing](CONTRIBUTING.md)
 - [Reverse Proxy Architecture](docs/REVERSE-PROXY.md)
 - [OAuth2 and OIDC](docs/OAUTH-OIDC.md)
 - [JWT Tokens](docs/JWT-JSON-WEB-TOKEN.md)

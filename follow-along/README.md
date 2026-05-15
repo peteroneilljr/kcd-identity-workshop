@@ -33,7 +33,7 @@ The first pass is sequenced deliberately — OIDC first, because it's the founda
 - A running Kubernetes cluster (Docker Desktop's k8s, kind, minikube, …)
 - `kubectl`, `docker` (to build the local app images)
 - `curl`, `jq`, `python3`, `ssh`, `ssh-keygen`, `nc` for the client-side flows
-- `psql` and `openssl` for the Postgres direct-psql module (04b)
+- `psql` and `openssl` for the Postgres direct-psql module (04b). On macOS with Homebrew, `brew install libpq` provides `psql` but it is **keg-only** — add **`export PATH="/opt/homebrew/opt/libpq/bin:$PATH"`** (Apple Silicon) or **`/usr/local/opt/libpq/bin`** (Intel) to your shell profile, or invoke **`/opt/homebrew/opt/libpq/bin/psql`** by full path.
 
 ## Convention used in these files
 

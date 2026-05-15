@@ -27,9 +27,25 @@ docker images --filter=reference='ghcr.io/peteroneilljr/kcd-identity-workshop/*'
 ./tests/test-demo.sh
 ```
 
-25 assertions across all four backends — should print `ALL 25 ASSERTIONS PASSED`. This is also what runs on every clean-rebuild verification we did during development.
+Dozens of integration checks across all backends — on success the last line is **`ALL … ASSERTIONS PASSED`** with the current total count. This is also what runs on every clean-rebuild verification we did during development.
 
 ## Troubleshooting
+
+### `kubectl apply` / `kubectl get` fails: `failed to download openapi` or `connection refused` to `127.0.0.1`
+
+Your kubeconfig points at a Kubernetes API (often minikube on `127.0.0.1:<port>`) that is **not running**. Start **Docker Desktop** (or your container engine), then **`minikube start`** (or equivalent), and confirm **`kubectl cluster-info`** works before applying manifests.
+
+### `minikube start` fails: `docker.sock` / `PROVIDER_DOCKER_VERSION`
+
+The minikube **docker** driver needs a running Docker daemon. Start Docker Desktop and wait until **`docker version`** shows a **Server** section, then retry **`minikube start`**.
+
+### `minikube kubectl --` fails with `connection refused` on a different port than `kubectl cluster-info`
+
+`minikube kubectl` can target a **stale** API address. Use the same **`kubectl`** binary your shell uses after **`minikube start`**, or run **`minikube update-context -p <profile>`**, then retry. Plain **`kubectl`** is sufficient for this workshop.
+
+### `psql: command not found` (module 04b)
+
+Install PostgreSQL client tools. On macOS: **`brew install libpq`**, then put **`…/opt/libpq/bin`** on your **`PATH`** (see [Prerequisites](README.md#prerequisites) in this folder’s index).
 
 ### `namespace ams-demo not found`
 
